@@ -1,6 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const { syncLifeOS } = require('./lifeos');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
@@ -447,7 +448,13 @@ async function runScraper() {
     } catch (e) {
       console.log(`  failed — ${e.message}`);
     }
-
+console.log("Step 10: Leo's LifeOS");
+    try {
+      await syncLifeOS(upcoming.items || []);
+    } catch (e) {
+      console.log(`  failed — ${e.message}`);
+    }
+    
     console.log('Done.');
     process.exit(0);
   } catch (error) {
