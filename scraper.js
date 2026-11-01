@@ -77,17 +77,34 @@ async function login() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: BASE, Referer: LOGIN_URL },
   });
   const loc = res.headers.location ? new URL(res.headers.location, BASE).pathname : 'none';
-  console.log(`  status ${res.status}, redirect: ${loc}, cookies: ${cookieNames()}`);
-  if (!jar.has('.ASPXAUTH')) throw new Error('No .ASPXAUTH cookie — login rejected.');
+  console.log(`  status ${res.status}, redirect: ${loc}`);
 
-  // Land on the student page: sets the session's student and gives us the header token
-  const home = await follow(res);
+  // The auth cookie is issued further down the redirect chain, so follow it first
+  let home = await follow(res);
+  console.log(`  landed on ${new URL(home.config.url).pathname} (status ${home.status}), cookies: ${cookieNames()}`);
+
+  // If we stopped on an intermediate page (e.g. a JavaScript redirect), find the student-page link in it
+  if (!/\/ParentStudentDetails\//i.test(new URL(home.config.url).pathname)) {
+    const html = String(home.data);
+    const link = html.match(/\/ParentStudentDetails\/ParentStudentDetails(\?op=[^"'\s<>]+)?/i);
+    const title = (html.match(/<title>([^<]*)<\/title>/i) || [])[1];
+    console.log(`  not on student page yet (title: ${title ? title.trim() : 'none'}), student link ${link ? 'found' : 'NOT found'}`);
+    if (link) {
+      home = await follow(await request({ method: 'get', url: BASE + link[0].replace(/&amp;/g, '&') }));
+      console.log(`  now on ${new URL(home.config.url).pathname} (status ${home.status}), cookies: ${cookieNames()}`);
+    }
+  }
+
+  if (!jar.has('.ASPXAUTH')) throw new Error('No .ASPXAUTH cookie after following redirects.');
+  if (!/\/ParentStudentDetails\//i.test(new URL(home.config.url).pathname)) {
+    throw new Error('Logged in, but never reached the student page.');
+  }
+
   const apiToken = extractToken(home.data);
-  console.log(`  landed on ${new URL(home.config.url).pathname} (status ${home.status}), API token ${apiToken ? 'found' : 'NOT found'}`);
+  console.log(`  API token ${apiToken ? 'found' : 'NOT found'}`);
   if (!apiToken) throw new Error('No anti-forgery token on the student page.');
   return { apiToken, referer: home.config.url };
 }
-
 function api(session, { method = 'post', path, data }) {
   return request({
     method,
