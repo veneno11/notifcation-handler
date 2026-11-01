@@ -1,6 +1,9 @@
 
 name: PlusPortals Scraper
-
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+  
 on:
   schedule:
     - cron: '0 */6 * * *'
