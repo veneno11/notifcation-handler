@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const admin = require('firebase-admin');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -11,7 +12,8 @@ const LOGIN_URL = `${BASE}/VillageSchool`;
 const STUDENT_ID = 12136;
 const MARKING_PERIOD_ID = 132;      // fallback only; the current term is detected automatically
 const SCORE_ID_FIELD = 'sectionId'; // confirmed: section 9333 matched your capture
-const DASHBOARD_UID = '';           // Firebase Auth UID; empty = old users/<email prefix> path
+const DASHBOARD_UID = '';           // your Firebase Auth UID (the dashboard shows it with a copy button)
+const DASHBOARD_URL = 'https://veneno11.github.io/personalApi/'; // opened when you tap a notification
 // ==================
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36';
@@ -88,6 +90,36 @@ function firestoreSafe(v, inArray = false) {
     return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, firestoreSafe(x)]));
   }
   return v === undefined ? null : v;
+}
+
+// Plain text for notification messages (teacher text can contain HTML)
+const cleanText = s => String(s ?? '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"').replace(/&#39;/g, "'")
+  .replace(/\s+/g, ' ').trim();
+
+const fmtNum = v => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? String(+n.toFixed(2)) : String(v ?? '');
+};
+
+// PlusPortals dates are calendar days; format them without timezone shifts
+function dayText(v) {
+  const s = String(v ?? '');
+  let d = null;
+  const ms = s.match(/\/Date\((-?\d+)/);
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (ms) {
+    const t = new Date(Number(ms[1]));
+    d = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+  } else if (iso) {
+    d = new Date(Date.UTC(+iso[1], iso[2] - 1, +iso[3]));
+  } else if (us) {
+    d = new Date(Date.UTC(+us[3], us[1] - 1, +us[2]));
+  }
+  return d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : null;
 }
 
 // JSON/grid requests (need the anti-forgery header)
@@ -193,12 +225,10 @@ async function fetchUpcoming(session) {
     const items = rowsOf(res);
     const total = res?.dataResult?.Total ?? items.length;
     console.log(`  ${items.length} items (total ${total}), past due: ${res?.pastDueCount ?? 'n/a'}`);
-    if (items.length) console.log(`  item fields: ${Object.keys(items[0]).join(', ')}`);
-
-    return { items, total, pastDueCount: res?.pastDueCount ?? null };
+    return { ok: true, items, total, pastDueCount: res?.pastDueCount ?? null };
   } catch (e) {
     console.log(`  failed — ${e.message}`);
-    return { items: [], total: 0, pastDueCount: null };
+    return { ok: false, items: [], total: 0, pastDueCount: null };
   }
 }
 
@@ -207,17 +237,11 @@ async function fetchUpcoming(session) {
 async function fetchAssignments(session, id) {
   // These two page loads tell the server which class the scores grid is for
   await view(session, `/ParentStudentDetails/ShowScoresIndex?SelectedCourseID=${id}&groupId=0`);
-  const details = await view(session, `/ParentStudentDetails/ShowScoresDetails?sectionId=${id}&sectionType=N`);
-  const rows = rowsOf(expectJson(
+  await view(session, `/ParentStudentDetails/ShowScoresDetails?sectionId=${id}&sectionType=N`);
+  return rowsOf(expectJson(
     await api(session, { path: '/ParentStudentDetails/ShowScoresGridInfo', data: 'sort=&group=&filter=' }),
     'ShowScoresGridInfo'
   ));
-  const html = String(details.data);
-  return {
-    rows,
-    detailsKb: Math.round(html.length / 1024),
-    detailsTableRows: (html.match(/<tr\b/gi) || []).length,
-  };
 }
 
 async function fetchGrades(session) {
@@ -251,20 +275,14 @@ async function fetchGrades(session) {
   if (!classes.length) throw new Error('No classes returned for the current marking period.');
 
   console.log('Step 6: assignment scores');
-  let loggedFields = false;
   for (const [i, cls] of classes.entries()) {
     const label = `class ${i + 1} (section ${cls.sectionId})`;
     try {
-      const { rows: scores } = await fetchAssignments(session, cls[SCORE_ID_FIELD]);
-      cls.assignments = scores;
-      console.log(`  ${label}: ${scores.length} scores`);
-      if (scores.length && !loggedFields) {
-        console.log(`  score fields: ${Object.keys(scores[0]).join(', ')}`);
-        loggedFields = true;
-      }
+      cls.assignments = await fetchAssignments(session, cls[SCORE_ID_FIELD]);
+      console.log(`  ${label}: ${cls.assignments.length} scores`);
     } catch (e) {
-      cls.assignments = [];
-      console.log(`  ${label}: failed — ${e.message}`);
+      cls.assignments = null; // filled from the last run below
+      console.log(`  ${label}: failed — ${e.message} (keeping last run's scores)`);
     }
   }
 
@@ -284,21 +302,154 @@ async function fetchGrades(session) {
   };
 }
 
+// ---------- New-item tracking ----------
+
+// If part of this run failed, keep the last run's copy instead of wiping it
+function reuseOnFailure(grades, upcoming, prev) {
+  for (const cls of grades.classes) {
+    if (cls.assignments !== null) continue;
+    const old = (prev?.classes || []).find(c => c.sectionId === cls.sectionId);
+    cls.assignments = old?.assignments || [];
+  }
+  if (upcoming.ok || !prev?.upcoming) return upcoming;
+  console.log("  upcoming fetch failed: keeping last run's list");
+  return { ...prev.upcoming, ok: true };
+}
+
+const itemKey = (prefix, parts) =>
+  prefix + crypto.createHash('sha1').update(parts.map(p => String(p ?? '')).join('|')).digest('hex').slice(0, 16);
+const hasScore = a => a.Score !== null && a.Score !== undefined && String(a.Score).trim() !== '';
+
+function trackNew(grades, upcoming, prev) {
+  const prevSeen = prev?.seen || {};
+  const baseline = !prev?.seen; // first tracked run: record everything, alert nothing
+  const now = Date.now();
+  const seen = {};
+  const fresh = { assignments: [], grades: [] };
+
+  const mark = (item, key, bucket, info) => {
+    if (key in seen) { item.firstSeen = seen[key]; return; }
+    const isNew = !(key in prevSeen);
+    const first = isNew ? (baseline ? 0 : now) : prevSeen[key];
+    seen[key] = first;
+    item.firstSeen = first;
+    if (isNew && !baseline) fresh[bucket].push(info);
+  };
+
+  for (const it of upcoming.items || []) {
+    mark(it, itemKey('u', [it.AssignmentID, it.LessonActivityID, it.DiscussionTopicID, it.SectionID, it.Title, it.DueDate]), 'assignments', {
+      title: cleanText(it.Title) || 'Untitled',
+      course: cleanText(it.CourseName || it.Class),
+      due: it.DueDate,
+    });
+  }
+  for (const cls of grades.classes) {
+    for (const a of cls.assignments || []) {
+      if (!hasScore(a)) continue;
+      mark(a, itemKey('g', [cls.sectionId, a.ShortName, a.Description, a.AssignmentDate, a.Score]), 'grades', {
+        title: cleanText(a.Description) || cleanText(a.ShortName) || 'Assignment',
+        course: cleanText(cls.name),
+        score: a.Score,
+        possible: a.PossiblePoints,
+      });
+    }
+  }
+  return { seen, fresh, baseline };
+}
+
+// ---------- Notifications ----------
+
+function buildMessages({ assignments: A, grades: G }) {
+  const list = lines => lines.slice(0, 4).join('\n') + (lines.length > 4 ? `\n+${lines.length - 4} more` : '');
+  const scoreText = g => `${fmtNum(g.score)}${g.possible != null && g.possible !== '' ? `/${fmtNum(g.possible)}` : ''}`;
+  const out = [];
+
+  if (A.length === 1) {
+    const due = dayText(A[0].due);
+    out.push({ title: `New assignment · ${A[0].course || 'PlusPortals'}`, body: `${A[0].title}${due ? ` — due ${due}` : ''}` });
+  } else if (A.length > 1) {
+    out.push({ title: `${A.length} new assignments`, body: list(A.map(a => (a.course ? `${a.course}: ${a.title}` : a.title))) });
+  }
+
+  if (G.length === 1) {
+    out.push({ title: `New grade · ${G[0].course || 'PlusPortals'}`, body: `${G[0].title}: ${scoreText(G[0])}` });
+  } else if (G.length > 1) {
+    out.push({ title: `${G.length} new grades`, body: list(G.map(g => `${g.course ? `${g.course}: ` : ''}${g.title} — ${scoreText(g)}`)) });
+  }
+  return out;
+}
+
+async function sendNotifications(userRef, fresh) {
+  const messages = buildMessages(fresh);
+  if (!messages.length) { console.log('  nothing new'); return; }
+
+  const snap = await userRef.collection('devices').get();
+  const devices = snap.docs.filter(d => typeof d.get('token') === 'string');
+  if (!devices.length) { console.log('  no devices registered (turn notifications on in the dashboard)'); return; }
+
+  const tokens = devices.map(d => d.get('token'));
+  const expired = new Set();
+  let sent = 0;
+
+  for (const m of messages) {
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title: m.title, body: m.body },
+      webpush: { fcmOptions: { link: DASHBOARD_URL } },
+    });
+    sent += res.successCount;
+    res.responses.forEach((r, i) => {
+      if (r.success) return;
+      const code = r.error?.code || '';
+      console.log(`  device ${i + 1}: ${code || r.error?.message}`);
+      if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+        expired.add(devices[i].ref);
+      }
+    });
+  }
+
+  await Promise.all([...expired].map(ref => ref.delete()));
+  console.log(`  sent ${sent} notification(s) to ${tokens.length} device(s)${expired.size ? `, removed ${expired.size} expired` : ''}`);
+}
+
 // ---------- Main ----------
 
 async function runScraper() {
   try {
     const session = await login();
-    const upcoming = await fetchUpcoming(session); // before the class loop changes the selected class
+    let upcoming = await fetchUpcoming(session); // before the class loop changes the selected class
     const grades = await fetchGrades(session);
 
-    console.log('Step 7: push to Firestore');
     const userId = DASHBOARD_UID || process.env.PLUSPORTALS_USER.split('@')[0];
-    await db.collection('users').doc(userId).collection('grades').doc('current').set({
+    const userRef = db.collection('users').doc(userId);
+    const docRef = userRef.collection('grades').doc('current');
+
+    console.log('Step 7: compare with last run');
+    const prevSnap = await docRef.get();
+    const prev = prevSnap.exists ? prevSnap.data() : null;
+    upcoming = reuseOnFailure(grades, upcoming, prev);
+    const { seen, fresh, baseline } = trackNew(grades, upcoming, prev);
+    console.log(baseline
+      ? '  first tracked run: saving a baseline, no alerts this time'
+      : `  ${fresh.assignments.length} new assignments, ${fresh.grades.length} new grades`);
+
+    console.log('Step 8: push to Firestore');
+    const { ok, ...upcomingData } = upcoming;
+    await docRef.set({
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      ...firestoreSafe({ ...grades, upcoming }),
+      ...firestoreSafe({ ...grades, upcoming: upcomingData, seen }),
     });
-    console.log('Successfully updated dashboard data.');
+    console.log('  saved');
+
+    console.log('Step 9: notifications');
+    try {
+      await sendNotifications(userRef, fresh);
+    } catch (e) {
+      console.log(`  failed — ${e.message}`);
+    }
+
+    console.log('Done.');
+    process.exit(0);
   } catch (error) {
     console.error('Extraction Error:', error.message);
     process.exit(1);
