@@ -1,1 +1,29 @@
 
+name: PlusPortals Scraper
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Scraper
+        env:
+          PLUSPORTALS_USER: ${{ secrets.PLUSPORTALS_USER }}
+          PLUSPORTALS_PASS: ${{ secrets.PLUSPORTALS_PASS }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scraper.js
