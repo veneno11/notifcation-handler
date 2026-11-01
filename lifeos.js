@@ -40,14 +40,14 @@ function lifeOsType(type, title) {
   return 'Homework';
 }
 
-// Same assignment = same key, even if the teacher changes the due date
+// Same assignment = same key, even if the teacher changes the due date (don't change this)
 const itemKey = it => crypto.createHash('sha1')
   .update([it.AssignmentID, it.LessonActivityID, it.DiscussionTopicID, it.SectionID, cleanText(it.Title)].map(v => String(v ?? '')).join('|'))
   .digest('hex').slice(0, 16);
 
-// PlusPortals dates are calendar days -> "YYYY-MM-DD", the format LifeOS uses
-function toISODate(v) {
- const MONTHS = { jan: 1, ene: 1, feb: 2, mar: 3, apr: 4, abr: 4, may: 5, jun: 6, jul: 7, aug: 8, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dec: 12, dic: 12 };
+// ---------- Due dates ----------
+
+const MONTHS = { jan: 1, ene: 1, feb: 2, mar: 3, apr: 4, abr: 4, may: 5, jun: 6, jul: 7, aug: 8, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dec: 12, dic: 12 };
 const pad = n => String(n).padStart(2, '0');
 const ymd = (y, m, d) => (m >= 1 && m <= 12 && d >= 1 && d <= 31) ? `${y}-${pad(m)}-${pad(d)}` : null;
 
@@ -81,8 +81,37 @@ function toISODate(v) {
   }
   return null;
 }
+
 const todayISO = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
 const dueText = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+// ---------- Titles ----------
+
+// PlusPortals titles start with the class name; LifeOS already shows it as a tag
+function cleanTitle(it) {
+  const raw = cleanText(it.Title) || 'Untitled';
+  const names = [it.CourseName, it.Class]
+    .map(cleanText).filter(Boolean)
+    .flatMap(n => [n, n.replace(/\s*\(.*$/, '')]) // with and without the "(code) 0733/01" part
+    .sort((a, b) => b.length - a.length);         // longest match first
+  let t = raw;
+  for (const n of names) {
+    if (norm(t).startsWith(norm(n))) { t = t.slice(n.length); break; }
+  }
+  if (t === raw) {
+    // "Chemistry - Lab 3" or "[AP Chem] Lab 3": drop a leading part only if it names the class
+    const m = raw.match(/^\[([^\]]{2,60})\]\s*(.+)$/) || raw.match(/^(.{2,60}?)\s*[:|–—-]\s+(.+)$/);
+    if (m) {
+      const head = norm(m[1]).trim();
+      const namesClass = head.length >= 3 && names.some(n => { const c = norm(n); return c.includes(head) || head.includes(c); });
+      if (namesClass) t = m[2];
+    }
+  }
+  t = t.replace(/^[\s\-–—:|·.,)\]]+/, '').trim();
+  return t || raw;
+}
+
+// ---------- Notifications ----------
 
 function buildMessage(added) {
   if (added.length === 1) {
@@ -119,29 +148,9 @@ async function notify(app, devicesRef, added) {
   if (Object.keys(expired).length) await devicesRef.update(expired);
   console.log(`  alerted ${res.successCount} of ${entries.length} device(s)`);
 }
-// PlusPortals titles start with the class name; LifeOS already shows it as a tag
-function cleanTitle(it) {
-  const raw = cleanText(it.Title) || 'Untitled';
-  const names = [it.CourseName, it.Class]
-    .map(cleanText).filter(Boolean)
-    .flatMap(n => [n, n.replace(/\s*\(.*$/, '')]) // with and without the "(code) 0733/01" part
-    .sort((a, b) => b.length - a.length);         // longest match first
-  let t = raw;
-  for (const n of names) {
-    if (norm(t).startsWith(norm(n))) { t = t.slice(n.length); break; }
-  }
-  if (t === raw) {
-    // "Chemistry - Lab 3" or "[AP Chem] Lab 3": drop a leading part only if it names the class
-    const m = raw.match(/^\[([^\]]{2,60})\]\s*(.+)$/) || raw.match(/^(.{2,60}?)\s*[:|–—-]\s+(.+)$/);
-    if (m) {
-      const head = norm(m[1]).trim();
-      const namesClass = head.length >= 3 && names.some(n => { const c = norm(n); return c.includes(head) || head.includes(c); });
-      if (namesClass) t = m[2];
-    }
-  }
-  t = t.replace(/^[\s\-–—:|·.,)\]]+/, '').trim();
-  return t || raw;
-}
+
+// ---------- Main ----------
+
 async function syncLifeOS(items) {
   const raw = process.env.LIFEOS_SERVICE_ACCOUNT;
   if (!raw) { console.log('  skipped: no LIFEOS_SERVICE_ACCOUNT secret'); return; }
@@ -215,24 +224,6 @@ async function syncLifeOS(items) {
   });
 
   console.log(`  ${added.length} added${baseline ? ' (first sync, no alerts)' : ''}, ${completed} marked done, ${moved} due dates moved, ${renamed} titles tidied`);
-  if (!baseline && added.length) await notify(app, devicesRef, added);
-}
-      if (idx === undefined) continue; // you deleted it in LifeOS: leave it gone
-      const task = tasks[idx];
-      if (doneInPP && !task.completed) { tasks[idx] = { ...tasks[idx], completed: true }; completed++; }
-      // Teacher moved the due date and you hadn't changed it yourself
-      if (!task.completed && entry.due !== due && task.dueDate === entry.due) { tasks[idx] = { ...tasks[idx], dueDate: due }; moved++; }
-      ledger[key] = { ...entry, due };
-    }
-
-    const cutoff = now - 180 * 864e5;
-    for (const [k, v] of Object.entries(ledger)) if (!v || v.at < cutoff) delete ledger[k];
-
-    if (added.length || completed || moved) tx.update(stateRef, { tasks });
-    tx.set(ledgerRef, { imported: ledger, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-  });
-
-  console.log(`  ${added.length} added${baseline ? ' (first sync, no alerts)' : ''}, ${completed} marked done, ${moved} due dates moved`);
   if (!baseline && added.length) await notify(app, devicesRef, added);
 }
 
