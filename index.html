@@ -265,19 +265,20 @@
     const VAPID_KEY = "NDfVp3jlO1SCqjvx6dPwYOUsAym1"; // ← copy this line from your current index.html
     const GITHUB = { repo: "veneno11/personalApi", workflow: "scrape.yml", branch: "main" };
 
-    // Class colors: the first pattern that matches a class name wins (capitals and accents are ignored)
+  // Class colors: the first pattern that matches a class name wins (capitals and accents are ignored)
     const CLASS_COLORS = [
-      [/german|aleman/, "#FF6B6B"],                                     // German: red
-      [/spanish|espanol|castellano/, "#FF6B6B"],                        // Spanish: red
-      [/english|ingles/, "#3CCB7F"],                                    // English: green
-      [/math|matemat|algebra|calcul|geometr/, "#4F8CFF"],               // Math: blue
-      [/chem|quimic/, "#FF8A3D"],                                       // Chemistry: orange
-      [/comp.*sci|computer|computac|informatic|programac/, "#F472B6"],  // Computer science: pink
-      [/elaboracion|proyecto/, "#A084FF"],                              // Elaboración de proyectos: purple
-      [/basket|baloncesto|basquet/, "#8A8B93"],                         // Basketball: no color
+      [/a\.\s*litera|english|ingles/, "#3CCB7F"],       // A.Litera11 (English): green
+      [/^literatura|spanish|espanol/, "#FF6B6B"],       // Literatura (Spanish): red
+      [/alem|german/, "#FF6B6B"],                       // AlemA1.1HS (German): red
+      [/precalc|calc|math|matemat|algebra/, "#4F8CFF"], // AP PreCalc (Math): blue
+      [/chem|quimic/, "#FF8A3D"],                       // AP Chem: orange
+      [/compsci|comp.*sci|computer|computac/, "#F472B6"], // CompSci 11: pink
+      [/elabpro|elaboracion|proyecto/, "#A084FF"],      // ElabPro11: purple
+      [/filosof|philosoph/, "#F4B740"],                 // Filosofi11: amber
+      [/bkb|basket|baloncesto|basquet/, "#8A8B93"],     // BKB MascHS (Basketball): no color
     ];
     // Classes that don't match anything above get these, in order
-    const OTHER_CLASS_COLORS = ["#2CC7D6", "#F4B740", "#2DD4BF", "#A3E635", "#818CF8", "#E879F9"];
+    const OTHER_CLASS_COLORS = ["#2CC7D6", "#A3E635", "#818CF8", "#E879F9", "#2DD4BF"];
     /* ========================= */
 
     const PLUSPORTALS_URL = "https://www.plusportals.com/VillageSchool";
