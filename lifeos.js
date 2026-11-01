@@ -143,9 +143,9 @@ function cleanTitle(it) {
   return t || raw;
 }
 async function syncLifeOS(items) {
-  if (items[0]) console.log(`  sample due date from PlusPortals: ${JSON.stringify(items[0].DueDate)}`);
   const raw = process.env.LIFEOS_SERVICE_ACCOUNT;
   if (!raw) { console.log('  skipped: no LIFEOS_SERVICE_ACCOUNT secret'); return; }
+  if (items[0]) console.log(`  sample due date from PlusPortals: ${JSON.stringify(items[0].DueDate)}`);
 
   const app = admin.apps.find(a => a && a.name === 'lifeos')
     || admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) }, 'lifeos');
@@ -156,10 +156,10 @@ async function syncLifeOS(items) {
   const devicesRef = base.doc('pushDevices');
 
   const added = [];
-  let completed = 0, moved = 0, baseline = false;
+  let completed = 0, moved = 0, renamed = 0, baseline = false;
 
   await db.runTransaction(async tx => {
-    added.length = 0; completed = 0; moved = 0; // transactions can retry
+    added.length = 0; completed = 0; moved = 0; renamed = 0; // transactions can retry
     const [stateSnap, ledgerSnap] = await tx.getAll(stateRef, ledgerRef);
     if (!stateSnap.exists) throw new Error('LifeOS data not found. Open LifeOS once so it syncs.');
     baseline = !ledgerSnap.exists;
@@ -174,6 +174,7 @@ async function syncLifeOS(items) {
       const id = `pp_${key}`;
       const due = toISODate(it.DueDate) || todayISO();
       const doneInPP = isTrue(it.IsCompleted);
+      const title = cleanTitle(it);
       const idx = indexById.get(id);
       const entry = ledger[key];
 
@@ -182,7 +183,7 @@ async function syncLifeOS(items) {
         if (doneInPP || idx !== undefined) continue;
         const task = {
           id,
-          title: cleanText(it.Title) || 'Untitled',
+          title,
           course: lifeOsCourse(it.CourseName || it.Class),
           type: lifeOsType(it.Type, it.Title),
           dueDate: due,
@@ -195,6 +196,27 @@ async function syncLifeOS(items) {
         continue;
       }
 
+      if (idx === undefined) continue; // you deleted it in LifeOS: leave it gone
+      const task = tasks[idx];
+      // Earlier imports kept the class name in front; fix it unless you renamed the task yourself
+      const oldTitle = cleanText(it.Title) || 'Untitled';
+      if (task.title === oldTitle && title !== oldTitle) { tasks[idx] = { ...tasks[idx], title }; renamed++; }
+      if (doneInPP && !task.completed) { tasks[idx] = { ...tasks[idx], completed: true }; completed++; }
+      // Teacher moved the due date and you hadn't changed it yourself
+      if (!task.completed && entry.due !== due && task.dueDate === entry.due) { tasks[idx] = { ...tasks[idx], dueDate: due }; moved++; }
+      ledger[key] = { ...entry, due };
+    }
+
+    const cutoff = now - 180 * 864e5;
+    for (const [k, v] of Object.entries(ledger)) if (!v || v.at < cutoff) delete ledger[k];
+
+    if (added.length || completed || moved || renamed) tx.update(stateRef, { tasks });
+    tx.set(ledgerRef, { imported: ledger, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+  });
+
+  console.log(`  ${added.length} added${baseline ? ' (first sync, no alerts)' : ''}, ${completed} marked done, ${moved} due dates moved, ${renamed} titles tidied`);
+  if (!baseline && added.length) await notify(app, devicesRef, added);
+}
       if (idx === undefined) continue; // you deleted it in LifeOS: leave it gone
       const task = tasks[idx];
       if (doneInPP && !task.completed) { tasks[idx] = { ...tasks[idx], completed: true }; completed++; }
