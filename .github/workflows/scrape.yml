@@ -29,4 +29,5 @@ jobs:
           PLUSPORTALS_USER: ${{ secrets.PLUSPORTALS_USER }}
           PLUSPORTALS_PASS: ${{ secrets.PLUSPORTALS_PASS }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          LIFEOS_SERVICE_ACCOUNT: ${{ secrets.LIFEOS_SERVICE_ACCOUNT }}
         run: node scraper.js
