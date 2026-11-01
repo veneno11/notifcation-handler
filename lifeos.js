@@ -119,7 +119,29 @@ async function notify(app, devicesRef, added) {
   if (Object.keys(expired).length) await devicesRef.update(expired);
   console.log(`  alerted ${res.successCount} of ${entries.length} device(s)`);
 }
-
+// PlusPortals titles start with the class name; LifeOS already shows it as a tag
+function cleanTitle(it) {
+  const raw = cleanText(it.Title) || 'Untitled';
+  const names = [it.CourseName, it.Class]
+    .map(cleanText).filter(Boolean)
+    .flatMap(n => [n, n.replace(/\s*\(.*$/, '')]) // with and without the "(code) 0733/01" part
+    .sort((a, b) => b.length - a.length);         // longest match first
+  let t = raw;
+  for (const n of names) {
+    if (norm(t).startsWith(norm(n))) { t = t.slice(n.length); break; }
+  }
+  if (t === raw) {
+    // "Chemistry - Lab 3" or "[AP Chem] Lab 3": drop a leading part only if it names the class
+    const m = raw.match(/^\[([^\]]{2,60})\]\s*(.+)$/) || raw.match(/^(.{2,60}?)\s*[:|–—-]\s+(.+)$/);
+    if (m) {
+      const head = norm(m[1]).trim();
+      const namesClass = head.length >= 3 && names.some(n => { const c = norm(n); return c.includes(head) || head.includes(c); });
+      if (namesClass) t = m[2];
+    }
+  }
+  t = t.replace(/^[\s\-–—:|·.,)\]]+/, '').trim();
+  return t || raw;
+}
 async function syncLifeOS(items) {
   if (items[0]) console.log(`  sample due date from PlusPortals: ${JSON.stringify(items[0].DueDate)}`);
   const raw = process.env.LIFEOS_SERVICE_ACCOUNT;
