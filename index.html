@@ -14,10 +14,11 @@
   <link rel="manifest" href="manifest.json" />
   <style>
     :root {
-      --bg: #0F1012; --surface: #1A1B1E; --surface-2: #232428; --surface-3: #2E2F35;
+      --bg: #0F1012; --surface: #18191C; --surface-2: #212226; --surface-3: #2C2D33;
       --line: rgba(255,255,255,.07);
-      --text: #EDEDEF; --text-2: #A1A2A8; --text-3: #6E6F76;
-      --blue: #4F8CFF; --green: #3CCB7F; --yellow: #F4B740; --red: #FF6B6B; --purple: #A084FF;
+      --text: #EEEEF0; --text-2: #A3A4AA; --text-3: #6F7078;
+      --blue: #4F8CFF; --violet: #A084FF; --green: #3CCB7F; --yellow: #F4B740; --orange: #FF8A3D;
+      --red: #FF6B6B; --cyan: #2CC7D6; --teal: #2DD4BF; --pink: #F472B6;
       --radius: 22px; --tabbar-h: 64px;
       --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
     }
@@ -25,36 +26,48 @@
     html, body { margin: 0; background: var(--bg); color: var(--text); }
     body { font-family: "SamsungOne", "Samsung Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
     button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+    button:disabled { cursor: default; }
     a { color: inherit; text-decoration: none; }
-    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    code, .mono-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
 
-    .app { max-width: 560px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 28px); }
+    .app { max-width: 560px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; overflow-x: clip; padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 28px); }
 
-    /* One UI-style large title that collapses into a top bar */
+    /* Header: One UI-style large title that collapses into a top bar */
     .topbar { position: fixed; inset: 0 0 auto; z-index: 20; padding-top: var(--safe-t); background: rgba(15,16,18,.84); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-bottom: 1px solid var(--line); opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .2s, transform .2s; }
     .topbar.show { opacity: 1; transform: none; pointer-events: auto; }
-    .topbar-inner { max-width: 560px; margin: 0 auto; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 22px; font-weight: 650; font-size: 17px; }
-    .hero { position: relative; min-height: clamp(190px, 32vh, 300px); padding: calc(var(--safe-t) + 16px) 22px 20px; display: flex; flex-direction: column; justify-content: flex-end; }
-    .hero-actions { position: absolute; top: calc(var(--safe-t) + 8px); right: 10px; }
-    .hero h1 { margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
-    .hero p { margin: 8px 0 0; color: var(--text-2); font-size: 14px; }
-    .icon-btn { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); transition: background .15s; }
+    .topbar-inner { max-width: 560px; margin: 0 auto; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 22px; font-weight: 650; font-size: 17px; }
+    .actions { display: flex; gap: 2px; }
+    .hero { --g1: rgba(79,140,255,.24); --g2: rgba(160,132,255,.2); position: relative; isolation: isolate; min-height: clamp(200px, 33vh, 310px); padding: calc(var(--safe-t) + 16px) 22px 22px; display: flex; flex-direction: column; justify-content: flex-end; }
+    .hero::before { content: ""; position: absolute; inset: 0 -60px -40px; z-index: -1; pointer-events: none; background: radial-gradient(50% 55% at 18% 45%, var(--g1), transparent 70%), radial-gradient(45% 50% at 88% 12%, var(--g2), transparent 70%); }
+    .hero .actions { position: absolute; top: calc(var(--safe-t) + 8px); right: 8px; }
+    .eyebrow { margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .hero h1 { margin: 0; font-size: 38px; font-weight: 750; letter-spacing: -.03em; line-height: 1.05; }
+    .status { --c: var(--green); display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 12px; padding: 6px 12px 6px 10px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid var(--line); font-size: 13px; color: var(--text-2); }
+    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+    .icon-btn { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); transition: background .15s, color .15s; }
     .icon-btn:active { background: var(--surface-2); }
+    .icon-btn.spinning { color: var(--blue); }
+    .icon-btn.spinning svg { animation: spin 1s linear infinite; }
 
-    .content { padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
-    .section { display: flex; flex-direction: column; gap: 8px; }
-    .section-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 8px; }
-    .section-head h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-2); letter-spacing: .01em; }
+    /* Layout */
+    .content { padding: 0 14px; display: flex; flex-direction: column; gap: 18px; }
+    .section { display: flex; flex-direction: column; gap: 9px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px; }
+    .section-head h2 { --c: var(--text-2); display: flex; align-items: center; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 650; color: var(--text); }
+    .section-head h2 svg { color: var(--c); }
     .section-head h2 span { color: var(--text-3); font-weight: 500; }
-    .caption { margin: -6px 8px 0; color: var(--text-3); font-size: 12.5px; }
+    .h-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
     .link { color: var(--blue); font-weight: 600; font-size: 13.5px; }
+    .caption { margin: -8px 8px 0; color: var(--text-3); font-size: 12.5px; }
     .muted { color: var(--text-2); }
+    .danger-text { color: var(--red); }
 
     .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
-    .empty { color: var(--text-3); text-align: center; font-size: 14px; padding: 22px 16px; }
     .notice p { margin: 0 0 12px; color: var(--text-2); }
     .notice b { color: var(--text); }
-    .warn-card { background: rgba(244,183,64,.08); border-color: rgba(244,183,64,.25); color: var(--yellow); font-size: 14px; }
+    .warn-card { background: color-mix(in srgb, var(--yellow) 8%, var(--surface)); border-color: color-mix(in srgb, var(--yellow) 25%, transparent); color: var(--yellow); font-size: 14px; }
+    .empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 18px; text-align: center; color: var(--text-2); font-size: 14px; }
+    .empty .icon { --c: var(--green); width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
 
     .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
     .list > * + * { border-top: 1px solid var(--line); }
@@ -64,93 +77,145 @@
     .row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row-sub { margin-top: 2px; color: var(--text-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row-sub.wrap { white-space: normal; }
-    .row-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: rgba(79,140,255,.14); color: var(--blue); }
-    .note { margin-top: 4px; color: var(--text-3); font-size: 12.5px; }
-    .dot-new { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--purple); vertical-align: 1px; }
-    .score { flex-shrink: 0; text-align: right; }
-    .score b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .score .of { color: var(--text-3); font-weight: 500; font-size: 13px; }
-    .score small { display: block; margin-top: 1px; color: var(--text-3); font-size: 12px; }
+    .row-icon { --c: var(--blue); width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+    .note { margin-top: 6px; color: var(--text-3); font-size: 12.5px; }
+    .dot-new { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--violet); box-shadow: 0 0 8px var(--violet); vertical-align: 1px; }
 
-    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .pill.new { background: rgba(160,132,255,.16); color: var(--purple); }
-    .pill.warn { background: rgba(255,107,107,.14); color: var(--red); }
-    .pill.soon { background: rgba(244,183,64,.14); color: var(--yellow); }
-    .pill.ok { background: rgba(60,203,127,.14); color: var(--green); }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    /* Tags & badges */
+    .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; min-width: 0; }
+    .tag { --c: var(--text-2); display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 15%, transparent); color: color-mix(in srgb, var(--c) 80%, white); font-size: 12px; font-weight: 600; }
+    .tag > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tag > i { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--c); }
+    .meta { font-size: 12px; color: var(--text-3); }
+    .due { font-size: 12px; font-weight: 650; }
+    .score { --c: var(--text-2); flex-shrink: 0; min-width: 66px; padding: 7px 10px; border-radius: 14px; text-align: right; background: color-mix(in srgb, var(--c) 13%, transparent); }
+    .score b { display: block; color: var(--c); font-size: 16px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .score .of { color: var(--text-3); font-size: 12.5px; font-weight: 500; }
+    .score small { display: block; margin-top: 1px; color: var(--text-3); font-size: 11.5px; }
 
-    .summary { display: flex; align-items: center; gap: 18px; padding: 20px; }
-    .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
-    .ring-wrap span { font-size: 12px; color: var(--text-3); }
-    .stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat { background: var(--surface-2); border-radius: 16px; padding: 10px 12px; text-align: left; }
-    .stat b { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .stat span { font-size: 12px; color: var(--text-2); }
+    /* Upcoming rows */
+    .up { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 14px 14px 14px 16px; text-align: left; }
+    .up[role="button"] { cursor: pointer; }
+    .date-tile { --c: var(--text-2); width: 48px; flex-shrink: 0; padding: 7px 0 6px; border-radius: 14px; text-align: center; line-height: 1.1; background: color-mix(in srgb, var(--c) 15%, var(--surface-2)); color: var(--c); }
+    .date-tile small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .date-tile b { font-size: 19px; color: var(--text); }
+    .up.open .row-title { white-space: normal; }
+    .up.done .row-title { color: var(--text-3); text-decoration: line-through; }
+    .up.done .date-tile { opacity: .55; }
+    .desc { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-2); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
+    .more { margin-top: 6px; color: var(--text-3); font-size: 12px; }
+    .check { width: 30px; height: 30px; flex-shrink: 0; align-self: center; border-radius: 50%; border: 2px solid var(--surface-3); display: grid; place-items: center; color: transparent; transition: background .2s, border-color .2s, transform .15s; }
+    .check:active { transform: scale(.88); }
+    .check.on { background: var(--green); border-color: var(--green); color: #0F1012; animation: pop .3s ease; }
 
-    .class-card { display: block; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; text-align: left; transition: transform .12s, border-color .15s; }
+    /* Home summary */
+    .summary { padding: 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--blue) 15%, var(--surface)) 0%, var(--surface) 50%, color-mix(in srgb, var(--violet) 12%, var(--surface)) 100%); }
+    .summary-top { display: flex; align-items: center; gap: 16px; }
+    .summary-text { flex: 1; min-width: 0; }
+    .summary-text small { display: block; margin-bottom: 4px; color: var(--text-2); font-size: 12.5px; font-weight: 600; }
+    .summary-line { --c: var(--blue); display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 13.5px; min-width: 0; }
+    .summary-line i { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--c); }
+    .summary-line span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+    .summary-line b { font-variant-numeric: tabular-nums; }
+    .ring { flex-shrink: 0; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+    .stat { --c: var(--blue); display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 0; padding: 10px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid var(--line); text-align: left; }
+    button.stat:active { background: rgba(255,255,255,.08); }
+    .stat .chip { width: 28px; height: 28px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); }
+    .stat b { font-size: 19px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+
+    /* Classes */
+    .mono { --c: var(--blue); width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; font-size: 15px; font-weight: 750; letter-spacing: .02em; color: color-mix(in srgb, var(--c) 35%, white); background: color-mix(in srgb, var(--c) 30%, var(--surface-2)); }
+    .mono.lg { width: 56px; height: 56px; border-radius: 18px; font-size: 19px; }
+    .class-card { --c: var(--blue); display: block; width: 100%; padding: 16px; border-radius: var(--radius); border: 1px solid var(--line); text-align: left; background: linear-gradient(135deg, color-mix(in srgb, var(--c) 14%, var(--surface)) 0%, var(--surface) 55%); transition: transform .12s; }
     .class-card:active { transform: scale(.985); }
-    .class-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .class-top { display: flex; align-items: center; gap: 12px; }
     .class-name { font-size: 16px; font-weight: 650; line-height: 1.3; }
     .class-grade { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
-    .class-avg { font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .class-avg { font-size: 26px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
     .bar { height: 6px; margin-top: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
     .bar i { display: block; height: 100%; border-radius: inherit; transition: width .6s ease; }
     .class-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-3); font-size: 12.5px; }
+    .class-meta .chev { margin-left: auto; display: grid; color: var(--text-3); }
+    .scroller { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -14px; padding: 2px 14px 6px; scrollbar-width: none; }
+    .scroller::-webkit-scrollbar { display: none; }
+    .class-tile { --c: var(--blue); scroll-snap-align: start; flex: 0 0 136px; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px; border: 1px solid var(--line); text-align: left; background: linear-gradient(160deg, color-mix(in srgb, var(--c) 22%, var(--surface)) 0%, var(--surface) 70%); }
+    .class-tile:active { transform: scale(.97); }
+    .tile-name { min-height: 34px; font-size: 13.5px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tile-avg { font-size: 22px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+    .tile-avg small { font-size: 13px; color: var(--text-2); font-weight: 600; }
 
-    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
+    /* Upcoming tab */
+    .alert-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--red) 15%, var(--surface)), var(--surface) 70%); }
+    .alert-card .icon { width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+    .alert-card b { display: block; font-size: 16px; }
+    .alert-card .row-main > span { font-size: 13px; color: var(--text-2); }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
     .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
-    .seg button { padding: 7px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+    .seg button { padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+    .seg button span { margin-left: 5px; color: var(--text-3); }
     .seg button.on { background: var(--surface-3); color: var(--text); }
+    .btn-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); font-size: 13.5px; font-weight: 650; }
+    .btn-pill:active { transform: scale(.96); }
 
-    .up { display: flex; gap: 12px; width: 100%; padding: 14px 16px; text-align: left; cursor: pointer; }
-    .up-date { width: 46px; flex-shrink: 0; align-self: flex-start; padding: 6px 0; border-radius: 12px; background: var(--surface-2); text-align: center; line-height: 1.15; }
-    .up-date small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
-    .up-date b { font-size: 18px; }
-    .up.open .row-title { white-space: normal; }
-    .up.done .row-title { color: var(--text-3); text-decoration: line-through; }
-    .desc { margin-top: 10px; color: var(--text-2); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
-
+    /* Tab bar */
     .tabbar { position: fixed; inset: auto 0 0; z-index: 30; padding: 6px 12px calc(6px + var(--safe-b)); background: rgba(15,16,18,.88); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
     .tabbar-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
     .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; color: var(--text-3); font-size: 11.5px; font-weight: 600; text-align: center; }
-    .tab .ico { position: relative; width: 60px; height: 32px; display: grid; place-items: center; border-radius: 999px; transition: background .2s; }
+    .tab .ico { position: relative; width: 60px; height: 32px; display: grid; place-items: center; border-radius: 999px; transition: background .2s, color .2s; }
     .tab.active { color: var(--text); }
-    .tab.active .ico { background: var(--surface-3); }
-    .tab-dot { position: absolute; top: 3px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--purple); border: 2px solid var(--bg); }
+    .tab.active .ico { background: color-mix(in srgb, var(--blue) 20%, transparent); color: var(--blue); }
+    .tab-dot { position: absolute; top: 3px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--violet); border: 2px solid var(--bg); }
 
+    /* Bottom sheets */
     .sheet-wrap { position: fixed; inset: 0; z-index: 50; }
     .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: fade .25s ease; transition: opacity .22s; }
     .sheet-wrap.closing .scrim { opacity: 0; }
     .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; max-height: 90vh; max-height: 90dvh; margin: 0 auto; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; padding-bottom: var(--safe-b); animation: sheetIn .32s cubic-bezier(.2,.8,.2,1); transition: transform .22s ease; }
-    .sheet-grip { display: grid; place-items: center; padding: 10px 0 10px; touch-action: none; cursor: grab; }
+    .sheet-grip { display: grid; place-items: center; padding: 10px 0; touch-action: none; cursor: grab; }
     .sheet-grip span { width: 40px; height: 5px; border-radius: 99px; background: var(--surface-3); }
     .sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 0 18px 24px; display: flex; flex-direction: column; gap: 12px; }
     .sheet .list, .sheet .card { background: var(--surface-2); }
     .sheet button.row:active, .sheet a.row:active { background: var(--surface-3); }
     .sheet .section-head { padding: 6px 4px 0; }
-    .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .sheet-head { display: flex; align-items: center; gap: 14px; }
     .sheet-head h3, .sheet-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
-    .sheet-head p { margin: 4px 0 0; color: var(--text-2); font-size: 14px; }
-    .big-avg { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .sheet-head p { margin: 3px 0 0; color: var(--text-2); font-size: 14px; }
+    .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .mini-stats div { padding: 10px; border-radius: 14px; background: rgba(255,255,255,.05); min-width: 0; }
+    .mini-stats b { display: block; font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .mini-stats span { font-size: 11.5px; color: var(--text-2); }
+    .cat-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 12px 16px; }
+    .cat-row .bar { grid-column: 1 / -1; margin-top: 10px; }
+    .cat-pct { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .cat-pct small { color: var(--text-3); font-weight: 500; }
     .link-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--blue); font-weight: 600; font-size: 14px; }
+    .setup p { margin: 0 0 12px; color: var(--text-2); font-size: 13.5px; }
+    .setup b { color: var(--text); }
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    .input-row .field { flex: 1; min-width: 0; padding: 12px 14px; }
 
-    .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px); z-index: 60; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 11px 16px; border-radius: 14px; background: var(--surface-3); color: var(--text); font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); animation: toastIn .25s ease; }
+    /* Misc */
+    .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px); z-index: 60; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; width: max-content; max-width: calc(100% - 32px); padding: 11px 16px; border-radius: 14px; background: var(--surface-3); color: var(--text); font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.45); animation: toastIn .25s ease; }
+    .toast button { color: var(--blue); font-weight: 700; }
     .btn { display: block; width: 100%; padding: 15px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 16px; font-weight: 650; text-align: center; }
     .btn:disabled { opacity: .6; }
-    .btn.small { width: auto; padding: 8px 16px; font-size: 14px; flex-shrink: 0; }
+    .btn.small { width: auto; padding: 9px 16px; font-size: 14px; flex-shrink: 0; }
     .btn.ghost { background: var(--surface-3); color: var(--text); }
-    .btn.danger { background: rgba(255,107,107,.1); color: var(--red); margin-top: 6px; }
+    .btn.danger { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); margin-top: 6px; }
     .spinner { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--surface-3); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+    .spinner.sm { width: 14px; height: 14px; }
     .uid { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); color: var(--text-2); }
     .uid code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); text-align: left; }
-
     .auth { min-height: 100vh; min-height: 100dvh; max-width: 400px; margin: 0 auto; padding: 24px 22px calc(24px + var(--safe-b)); display: flex; flex-direction: column; justify-content: center; }
-    .auth h1 { margin: 20px 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+    .auth h1 { margin: 20px 0 6px; font-size: 30px; font-weight: 750; letter-spacing: -.02em; }
     .auth p { margin: 0; }
     .auth-form { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
     .field { width: 100%; padding: 15px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; transition: border-color .15s; }
+    .sheet .field { background: var(--surface-3); }
     .field:focus { border-color: var(--blue); }
-    .form-msg { margin: 2px 4px; font-size: 14px; }
+    .form-msg { margin: 8px 4px 0; font-size: 14px; }
     .form-msg.error { color: var(--red); }
     .form-msg.ok { color: var(--green); }
     .auth .link { display: block; margin: 20px auto 0; }
@@ -163,11 +228,13 @@
     @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 50% { opacity: .55; transform: scale(.94); } }
+    @keyframes pop { 50% { transform: scale(1.18); } }
     @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     @media (hover: hover) {
       button.row:hover, a.row:hover, .up:hover { background: var(--surface-2); }
       .sheet button.row:hover, .sheet a.row:hover { background: var(--surface-3); }
-      .class-card:hover { border-color: rgba(255,255,255,.14); }
+      .class-card:hover, .class-tile:hover { border-color: rgba(255,255,255,.14); }
+      .check:hover { border-color: var(--green); }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
@@ -186,30 +253,49 @@
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-    /* ===== Fill these in (Firebase console → Project settings) ===== */
+    /* ===== Your settings ===== */
     const FIREBASE_CONFIG = {
-   apiKey: "AIzaSyDWqQ36p41VuyW7SjQ6oUlJ-6Na4KOGp44",
-  authDomain: "personal-api-15935.firebaseapp.com",
-  projectId: "personal-api-15935",
-  storageBucket: "personal-api-15935.firebasestorage.app",
-  messagingSenderId: "310881556113",
-  appId: "1:310881556113:web:4837ead6568ea7b98e5130",
-  measurementId: "G-BHBFR70YXV"
+      apiKey: "AIzaSyDWqQ36p41VuyW7SjQ6oUlJ-6Na4KOGp44",
+      authDomain: "personal-api-15935.firebaseapp.com",
+      projectId: "personal-api-15935",
+      storageBucket: "personal-api-15935.firebasestorage.app",
+      messagingSenderId: "310881556113",
+      appId: "1:310881556113:web:4837ead6568ea7b98e5130",
     };
-    const VAPID_KEY = "PASTE_WEB_PUSH_KEY"; // Cloud Messaging → Web Push certificates
-    /* =============================================================== */
+    const VAPID_KEY = "NDfVp3jlO1SCqjvx6dPwYOUsAym1"; // ← copy this line from your current index.html
+    const GITHUB = { repo: "veneno11/personalApi", workflow: "scrape.yml", branch: "main" };
+
+    // Class colors: the first pattern that matches a class name wins (capitals and accents are ignored)
+    const CLASS_COLORS = [
+      [/german|aleman/, "#FF6B6B"],                                     // German: red
+      [/spanish|espanol|castellano/, "#FF6B6B"],                        // Spanish: red
+      [/english|ingles/, "#3CCB7F"],                                    // English: green
+      [/math|matemat|algebra|calcul|geometr/, "#4F8CFF"],               // Math: blue
+      [/chem|quimic/, "#FF8A3D"],                                       // Chemistry: orange
+      [/comp.*sci|computer|computac|informatic|programac/, "#F472B6"],  // Computer science: pink
+      [/elaboracion|proyecto/, "#A084FF"],                              // Elaboración de proyectos: purple
+      [/basket|baloncesto|basquet/, "#8A8B93"],                         // Basketball: no color
+    ];
+    // Classes that don't match anything above get these, in order
+    const OTHER_CLASS_COLORS = ["#2CC7D6", "#F4B740", "#2DD4BF", "#A3E635", "#818CF8", "#E879F9"];
+    /* ========================= */
 
     const PLUSPORTALS_URL = "https://www.plusportals.com/VillageSchool";
-    const NEW_FOR_MS = 3 * 24 * 3600e3;  // how long items keep their "New" badge
-    const STALE_AFTER_MS = 26 * 3600e3;  // warn if the scraper hasn't saved data in this long
+    const NEW_FOR_MS = 3 * 864e5;            // "New" badge lasts 3 days
+    const STALE_AFTER_MS = 26 * 36e5;        // warn if no update in 26 hours
+    const AUTO_REFRESH_AFTER_MS = 10 * 6e4;  // refresh on open if data is older than 10 minutes
+    const REFRESH_COOLDOWN_MS = 3 * 6e4;     // never auto-refresh more than once every 3 minutes
+    const REFRESH_TIMEOUT_MS = 5 * 6e4;
     const DEVICE_KEY = "grades.pushDevice";
+    const REFRESH_KEY = "grades.lastRefresh";
 
     const configured = !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
     if (configured) firebase.initializeApp(FIREBASE_CONFIG);
     const auth = configured ? firebase.auth() : null;
     const db = configured ? firebase.firestore() : null;
+    const SW_URL = `firebase-messaging-sw.js?config=${encodeURIComponent(JSON.stringify(FIREBASE_CONFIG))}`;
+    if (configured && "serviceWorker" in navigator) navigator.serviceWorker.register(SW_URL).catch(() => {});
 
-    if (configured && "serviceWorker" in navigator) navigator.serviceWorker.register(`firebase-messaging-sw.js?config=${encodeURIComponent(JSON.stringify(FIREBASE_CONFIG))}`).catch(() => {});
     /* ---------- Helpers ---------- */
     const store = {
       get: k => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -228,6 +314,14 @@
     const tsLast = d => (d ? d.getTime() : Number.MAX_SAFE_INTEGER);
     const isNewItem = it => typeof it?.firstSeen === "number" && it.firstSeen > 0 && Date.now() - it.firstSeen < NEW_FOR_MS;
     const titleCase = s => String(s).toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+    const hashNum = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; };
+    const doneKeyOf = u => "u" + hashNum([u.AssignmentID, u.LessonActivityID, u.DiscussionTopicID, u.SectionID, u.Title].map(v => String(v ?? "")).join("|")).toString(36);
+    const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const namedColor = name => {
+      const n = norm(name);
+      const hit = CLASS_COLORS.find(([re]) => re.test(n));
+      return hit ? hit[1] : null;
+    };
 
     // Teacher-entered text can contain HTML; keep only the plain text
     function clean(value) {
@@ -268,12 +362,20 @@
       if (n < 7) return `Due ${d.toLocaleDateString(undefined, { weekday: "long" })}`;
       return `Due ${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`;
     }
-    function dueTone(d) {
-      if (!d) return "";
+    function urgency(d, done) {
+      if (done) return "var(--green)";
+      if (!d) return "var(--text-2)";
       const n = daysFromToday(d);
-      return n <= 0 ? "warn" : n === 1 ? "soon" : "";
+      if (n < 0) return "var(--red)";
+      if (n === 0) return "var(--orange)";
+      if (n === 1) return "var(--yellow)";
+      if (n < 7) return "var(--blue)";
+      return "var(--text-2)";
     }
-    const BUCKETS = ["Past", "Today", "Tomorrow", "This week", "Later", "No due date"];
+    const BUCKETS = [
+      ["Past", "var(--red)"], ["Today", "var(--orange)"], ["Tomorrow", "var(--yellow)"],
+      ["This week", "var(--blue)"], ["Later", "var(--violet)"], ["No due date", "var(--text-3)"],
+    ];
     function bucket(d) {
       if (!d) return "No due date";
       const n = daysFromToday(d);
@@ -290,6 +392,24 @@
       if (pct >= 70) return "var(--yellow)";
       return "var(--red)";
     }
+    const TYPE_COLORS = [
+      [/test|exam|prueba|evaluac/i, "var(--red)"],
+      [/quiz|comprob/i, "var(--violet)"],
+      [/project|proyect/i, "var(--orange)"],
+      [/discuss|foro|forum|debate/i, "var(--cyan)"],
+      [/lab/i, "var(--teal)"],
+      [/home|tarea|assign|hoja|worksheet/i, "var(--blue)"],
+      [/class|clase|activ|particip|zona/i, "var(--green)"],
+      [/read|lectur|essay|ensayo|writ/i, "var(--pink)"],
+    ];
+    const typeColor = s => (TYPE_COLORS.find(([re]) => re.test(s || "")) || [null, "var(--text-2)"])[1];
+
+    function monogram(name) {
+      const words = String(name).replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+      if (!words.length) return "?";
+      const second = words.slice(1).find(w => w.length > 2 && /\p{L}/u.test(w[0]));
+      return (second ? words[0][0] + second[0] : words[0].slice(0, 2)).toUpperCase();
+    }
     function relTime(date) {
       if (!date) return "never";
       const s = (Date.now() - date.getTime()) / 1000;
@@ -299,69 +419,218 @@
       const days = Math.floor(s / 86400);
       return days === 1 ? "yesterday" : `${days} days ago`;
     }
+    function greeting() {
+      const h = new Date().getHours();
+      return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    }
 
     /* ---------- Data model ---------- */
-    function buildModel(data) {
-      const classes = (data.classes || []).map(c => {
-        const name = clean(c.name) || "Class";
+    function buildModel(data, dash) {
+      const sorted = (data.classes || [])
+        .map(c => ({ c, name: clean(c.name) || "Class" }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      let otherIndex = 0;
+      const classes = sorted.map(({ c, name }) => {
+        const color = namedColor(name) || OTHER_CLASS_COLORS[otherIndex++ % OTHER_CLASS_COLORS.length];
         const assignments = (c.assignments || []).map(a => {
           const score = num(a.Score);
           const possible = num(a.PossiblePoints);
           const scoreText = a.Score === null || a.Score === undefined || String(a.Score).trim() === "" ? null : String(a.Score).trim();
+          const category = clean(a.Category);
           return {
             title: clean(a.Description) || clean(a.ShortName) || "Assignment",
-            category: clean(a.Category),
+            category, catColor: typeColor(category),
             date: parseDay(a.AssignmentDate) || parseDay(a.DueDate),
-            scoreText,
-            possible,
+            scoreText, possible,
             pct: scoreText != null && score != null && possible ? (score / possible) * 100 : null,
             note: clean(a.Note),
-            isNew: isNewItem(a),
-            firstSeen: a.firstSeen || 0,
-            className: name,
-            sectionId: c.sectionId,
+            isNew: isNewItem(a), firstSeen: a.firstSeen || 0,
+            className: name, color, sectionId: c.sectionId,
           };
         }).sort((x, y) => ts(y.date) - ts(x.date));
+
         const graded = assignments.filter(a => a.scoreText != null);
         let avg = num(c.average);
-        if (avg === 0 && graded.length === 0) avg = null; // no grades yet, not a real zero
-        return {
-          sectionId: c.sectionId, name, avg, assignments, graded,
-          teacher: clean(c.teacher), teacherEmail: c.teacherEmail || "", grade: clean(c.grade),
-        };
-      }).sort((a, b) => a.name.localeCompare(b.name));
+        if (avg === 0 && graded.length === 0) avg = null; // nothing graded yet, not a real zero
+        const pcts = graded.map(a => a.pct).filter(v => v != null);
+        const cats = {};
+        for (const a of graded) if (a.pct != null) (cats[a.category || "Other"] ||= []).push(a.pct);
+        const categories = Object.entries(cats)
+          .map(([n, arr]) => ({ name: n, count: arr.length, avg: arr.reduce((s, v) => s + v, 0) / arr.length, color: typeColor(n) }))
+          .sort((x, y) => y.count - x.count);
 
+        return {
+          sectionId: c.sectionId, name, color, monogram: monogram(name), avg,
+          grade: clean(c.grade), teacher: clean(c.teacher), teacherEmail: c.teacherEmail || "",
+          assignments, graded, categories, best: pcts.length ? Math.max(...pcts) : null,
+        };
+      });
+
+      const bySection = new Map(classes.map(c => [String(c.sectionId), c]));
+      const doneMap = (dash && dash.done) || {};
       const up = data.upcoming || {};
-      const upcoming = (up.items || []).map((u, i) => ({
-        key: `${u.AssignmentID || ""}-${u.LessonActivityID || ""}-${u.DiscussionTopicID || ""}-${i}`,
-        title: clean(u.Title) || "Untitled",
-        description: clean(u.Description),
-        className: clean(u.CourseName) || clean(u.Class),
-        type: clean(u.Type),
-        due: parseDay(u.DueDate),
-        done: isTrue(u.IsCompleted),
-        isNew: isNewItem(u),
-        firstSeen: u.firstSeen || 0,
-      })).sort((a, b) => tsLast(a.due) - tsLast(b.due));
+      const upcoming = (up.items || []).map((u, i) => {
+        const cls = bySection.get(String(u.SectionID));
+        const doneKey = doneKeyOf(u);
+        const doneRemote = isTrue(u.IsCompleted);
+        const doneLocal = !!doneMap[doneKey];
+        const className = clean(u.CourseName) || clean(u.Class) || (cls ? cls.name : "");
+        return {
+          key: `${doneKey}-${i}`, doneKey,
+          title: clean(u.Title) || "Untitled",
+          description: clean(u.Description),
+          className,
+          color: cls ? cls.color : (namedColor(className) || OTHER_CLASS_COLORS[hashNum(className) % OTHER_CLASS_COLORS.length]),
+          type: clean(u.Type),
+          due: parseDay(u.DueDate),
+          doneRemote, doneLocal, done: doneRemote || doneLocal,
+          isNew: isNewItem(u), firstSeen: u.firstSeen || 0,
+        };
+      }).sort((a, b) => tsLast(a.due) - tsLast(b.due));
 
       const allGraded = classes.flatMap(c => c.graded);
       const fresh = [
         ...allGraded.filter(a => a.isNew).map(item => ({ kind: "grade", item })),
         ...upcoming.filter(u => u.isNew).map(item => ({ kind: "assignment", item })),
       ].sort((a, b) => b.item.firstSeen - a.item.firstSeen);
-      const avgs = classes.map(c => c.avg).filter(v => v != null);
+
+      const ranked = classes.filter(c => c.avg != null).sort((a, b) => b.avg - a.avg);
+      const pastDue = num(up.pastDueCount);
+      const ack = dash && dash.pastDueAck != null ? dash.pastDueAck : null;
       const mp = data.markingPeriod;
 
       return {
         classes, upcoming, fresh,
         pending: upcoming.filter(u => !u.done),
+        completed: upcoming.filter(u => u.done),
         recent: [...allGraded].sort((a, b) => ts(b.date) - ts(a.date)).slice(0, 6),
         gradedCount: allGraded.length,
-        overall: avgs.length ? avgs.reduce((s, v) => s + v, 0) / avgs.length : null,
-        pastDue: num(up.pastDueCount),
+        overall: ranked.length ? ranked.reduce((s, c) => s + c.avg, 0) / ranked.length : null,
+        best: ranked[0] || null,
+        worst: ranked.length > 1 ? ranked[ranked.length - 1] : null,
+        pastDue, pastDueAck: ack,
+        pastDueVisible: pastDue == null ? null : Math.max(0, pastDue - (ack || 0)),
         updated: data.lastUpdated && data.lastUpdated.toDate ? data.lastUpdated.toDate() : null,
         mpLabel: mp ? titleCase(mp.description || `${mp.name} marking period`) : "",
       };
+    }
+
+    /* ---------- GitHub: refresh on open ---------- */
+    async function gh(token, path, options = {}) {
+      let res;
+      try {
+        res = await fetch(`https://api.github.com/repos/${GITHUB.repo}${path}`, {
+          ...options,
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${token}`,
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+          },
+        });
+      } catch {
+        throw new Error("Couldn't reach GitHub. Check your connection.");
+      }
+      if (!res.ok) {
+        const hints = {
+          401: "GitHub rejected the token. It may have expired; add a new one in Settings.",
+          403: "The token needs Actions: Read and write permission.",
+          404: `Can't find ${GITHUB.workflow} in ${GITHUB.repo}. Check the token's repository access.`,
+          422: `The workflow needs a workflow_dispatch trigger and a "${GITHUB.branch}" branch.`,
+        };
+        throw new Error(hints[res.status] || `GitHub returned an error (${res.status}).`);
+      }
+      return res.status === 204 ? null : res.json();
+    }
+    const workflowBusy = async token => {
+      const data = await gh(token, `/actions/workflows/${GITHUB.workflow}/runs?per_page=5`);
+      return (data.workflow_runs || []).some(r => r.status !== "completed");
+    };
+    const dispatchWorkflow = token =>
+      gh(token, `/actions/workflows/${GITHUB.workflow}/dispatches`, { method: "POST", body: JSON.stringify({ ref: GITHUB.branch }) });
+
+    function useRefresh(uid, updatedMs, ready, notify) {
+      const [token, setToken] = useState(undefined); // undefined = loading, null = not set
+      const [phase, setPhase] = useState("idle");    // idle | starting | running
+      const baseline = useRef(0);
+      const tokenRef = useRef(token); tokenRef.current = token;
+      const phaseRef = useRef(phase); phaseRef.current = phase;
+      const updatedRef = useRef(updatedMs); updatedRef.current = updatedMs;
+
+      useEffect(() => db.doc(`users/${uid}/private/github`).onSnapshot(
+        snap => setToken(snap.get("token") || null),
+        () => setToken(null)
+      ), [uid]);
+
+      const trigger = useCallback(async manual => {
+        const tk = tokenRef.current;
+        if (!tk) return "no-token";
+        if (phaseRef.current !== "idle") return "busy";
+        const last = Number(store.get(REFRESH_KEY)) || 0;
+        if (!manual && Date.now() - last < REFRESH_COOLDOWN_MS) return "cooldown";
+        setPhase("starting");
+        try {
+          if (!(await workflowBusy(tk))) await dispatchWorkflow(tk);
+          store.set(REFRESH_KEY, String(Date.now()));
+          baseline.current = updatedRef.current || 0;
+          setPhase("running");
+          return "started";
+        } catch (err) {
+          setPhase("idle");
+          notify(err.message);
+          return "error";
+        }
+      }, [notify]);
+
+      // Finished once newer data shows up
+      useEffect(() => {
+        if (phase === "running" && updatedMs && updatedMs > baseline.current) {
+          setPhase("idle");
+          notify("Up to date");
+        }
+      }, [updatedMs, phase, notify]);
+
+      useEffect(() => {
+        if (phase !== "running") return;
+        const id = setTimeout(() => {
+          setPhase("idle");
+          notify("Still running on GitHub. New data will appear when it finishes.");
+        }, REFRESH_TIMEOUT_MS);
+        return () => clearTimeout(id);
+      }, [phase, notify]);
+
+      // Refresh when the app opens or comes back to the foreground with old data
+      useEffect(() => {
+        if (!ready || !token) return;
+        const check = () => {
+          if (document.visibilityState !== "visible") return;
+          const age = updatedRef.current ? Date.now() - updatedRef.current : Infinity;
+          if (age > AUTO_REFRESH_AFTER_MS) trigger(false);
+        };
+        check();
+        document.addEventListener("visibilitychange", check);
+        return () => document.removeEventListener("visibilitychange", check);
+      }, [ready, token, trigger]);
+
+      const saveToken = async raw => {
+        const tk = raw.trim();
+        await workflowBusy(tk); // throws a readable error if the token doesn't work
+        await db.doc(`users/${uid}/private/github`).set({ token: tk, savedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      };
+      const removeToken = () => db.doc(`users/${uid}/private/github`).delete();
+
+      return { token, phase, trigger, saveToken, removeToken };
+    }
+
+    /* ---------- Dashboard state (done items, cleared past due) ---------- */
+    function useDash(uid) {
+      const [dash, setDash] = useState({ done: {}, pastDueAck: null });
+      useEffect(() => db.doc(`users/${uid}/state/dashboard`).onSnapshot(
+        snap => setDash({ done: snap.get("done") || {}, pastDueAck: snap.get("pastDueAck") ?? null }),
+        err => console.warn("Dashboard state unavailable", err)
+      ), [uid]);
+      const save = useCallback(next => db.doc(`users/${uid}/state/dashboard`).set(next), [uid]);
+      return [dash, save];
     }
 
     /* ---------- Push notifications ---------- */
@@ -371,9 +640,7 @@
     }
 
     async function registerDevice(uid) {
-      // Registered relative to this page so it works under /personalApi/ on GitHub Pages
-      const swUrl = `firebase-messaging-sw.js?config=${encodeURIComponent(JSON.stringify(FIREBASE_CONFIG))}`;
-      await navigator.serviceWorker.register(swUrl);
+      await navigator.serviceWorker.register(SW_URL);
       const registration = await navigator.serviceWorker.ready;
       const token = await firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
       if (!token) throw new Error("No push token returned");
@@ -464,12 +731,13 @@
     function useToast() {
       const [toast, setToast] = useState(null);
       const timer = useRef();
-      const show = useCallback(text => {
+      const hide = useCallback(() => { clearTimeout(timer.current); setToast(null); }, []);
+      const show = useCallback((text, action) => {
         clearTimeout(timer.current);
-        setToast({ text, id: Date.now() });
-        timer.current = setTimeout(() => setToast(null), 3500);
+        setToast({ text, action, id: Date.now() });
+        timer.current = setTimeout(() => setToast(null), action ? 6000 : 3500);
       }, []);
-      return [toast, show];
+      return [toast, show, hide];
     }
 
     function useMinuteTick() {
@@ -492,21 +760,31 @@
       return compact;
     }
 
-    /* ---------- Icons ---------- */
-    const ic = (paths, size = 22) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
-    );
-    const I = {
-      home: ic(<><path d="M3 10.5 12 3l9 7.5" /><path d="M5.5 9v11a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9" /></>),
-      book: ic(<><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z" /><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3" /></>),
-      calendar: ic(<><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>),
-      settings: ic(<><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></>),
-      bell: ic(<><path d="M6 9a6 6 0 1 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15.5 6 9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></>),
-      copy: ic(<><rect x="9" y="9" width="11.5" height="11.5" rx="2.5" /><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5" /></>, 18),
-      external: ic(<><path d="M14 4h6v6M20 4l-9 9" /><path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" /></>, 18),
-      mail: ic(<><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" /></>, 18),
-      check: ic(<path d="M5 12.5 10 17l9-10" />, 13),
+    /* ---------- Icons (SVG only) ---------- */
+    const P = {
+      home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5.5 9v11a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9" /></>,
+      book: <><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z" /><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3" /></>,
+      calendar: <><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>,
+      settings: <><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></>,
+      refresh: <><path d="M20 11.5a8 8 0 1 1-2.6-6.4" /><path d="M20 4v5h-5" /></>,
+      bell: <><path d="M6 9a6 6 0 1 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15.5 6 9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></>,
+      copy: <><rect x="9" y="9" width="11.5" height="11.5" rx="2.5" /><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5" /></>,
+      external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" /></>,
+      mail: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" /></>,
+      check: <path d="M5 12.5 10 17l9-10" />,
+      checks: <><path d="M2.5 12.5 6.5 16.5 14 8.5" /><path d="m11 15.5 1 1 9.5-9.5" /></>,
+      doneCircle: <><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16.5 9.5" /></>,
+      alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5h.01" /></>,
+      chart: <><path d="M4 20h16" /><path d="M7 16v-4M12 16V8M17 16V5" /></>,
+      list: <><path d="M10 6h10M10 12h10M10 18h10" /><path d="m3.5 6 1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5" /></>,
+      sparkle: <><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" /><path d="M18.5 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" /></>,
+      clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" /></>,
+      key: <><circle cx="8" cy="15" r="4.5" /><path d="m11.2 11.8 8.3-8.3M16.5 6.5 19 9M14 9l2 2" /></>,
+      chevron: <path d="m9 6 6 6-6 6" />,
     };
+    const Icon = ({ name, size = 22, stroke = 1.9 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{P[name]}</svg>
+    );
 
     function AppIcon({ size = 56 }) {
       return (
@@ -525,42 +803,53 @@
     }
 
     /* ---------- Building blocks ---------- */
-    const IconButton = ({ label, onClick, children }) => (
-      <button className="icon-btn" aria-label={label} onClick={onClick}>{children}</button>
+    const IconButton = ({ label, onClick, spinning, children }) => (
+      <button className={`icon-btn${spinning ? " spinning" : ""}`} aria-label={label} onClick={onClick}>{children}</button>
     );
 
-    function Ring({ value, size = 96 }) {
+    function Ring({ value, size = 92 }) {
       const r = (size - 12) / 2;
       const c = 2 * Math.PI * r;
+      const col = tone(value);
       return (
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={`Average ${fmt(value)}`}>
+        <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Overall average ${fmt(value)}`}>
+          <defs>
+            <linearGradient id="ring-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" style={{ stopColor: `color-mix(in srgb, ${col} 50%, white)` }} />
+              <stop offset="1" style={{ stopColor: col }} />
+            </linearGradient>
+          </defs>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" style={{ stroke: "var(--surface-3)" }} />
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" strokeLinecap="round"
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" strokeLinecap="round" stroke="url(#ring-g)"
             strokeDasharray={c} strokeDashoffset={c * (1 - clamp(value) / 100)}
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
-            style={{ stroke: tone(value), transition: "stroke-dashoffset .6s ease" }} />
-          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fontSize="24" fontWeight="700" style={{ fill: "var(--text)" }}>
+            style={{ filter: `drop-shadow(0 0 6px ${col})`, transition: "stroke-dashoffset .6s ease" }} />
+          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fontSize="23" fontWeight="750" style={{ fill: "var(--text)" }}>
             {fmt(value)}
           </text>
         </svg>
       );
     }
 
-    function Stat({ value, label, color, onClick }) {
+    function Stat({ icon, color, value, label, onClick }) {
       const Tag = onClick ? "button" : "div";
       return (
-        <Tag className="stat" onClick={onClick}>
-          <b style={color ? { color } : undefined}>{value}</b>
-          <span>{label}</span>
+        <Tag className="stat" style={{ "--c": color }} onClick={onClick}>
+          <span className="chip"><Icon name={icon} size={16} /></span>
+          <b>{value}</b>
+          <span className="stat-label">{label}</span>
         </Tag>
       );
     }
 
-    function Section({ title, note, action, children }) {
+    function Section({ icon, color, dot, title, note, action, children }) {
       return (
         <section className="section">
           <div className="section-head">
-            <h2>{title}{note && <span> · {note}</span>}</h2>
+            <h2 style={color ? { "--c": color } : undefined}>
+              {icon && <Icon name={icon} size={16} />}{dot && <i className="h-dot" />}
+              {title}{note && <span> · {note}</span>}
+            </h2>
             {action && <button className="link" onClick={action.onClick}>{action.label}</button>}
           </div>
           {children}
@@ -568,52 +857,76 @@
       );
     }
 
+    const Empty = ({ icon = "doneCircle", color = "var(--green)", children }) => (
+      <div className="card empty">
+        <span className="icon" style={{ "--c": color }}><Icon name={icon} /></span>
+        <div>{children}</div>
+      </div>
+    );
+
+    function StatusPill({ phase, updated }) {
+      if (phase !== "idle") {
+        return <div className="status"><span className="spinner sm" />{phase === "starting" ? "Starting refresh…" : "Checking PlusPortals…"}</div>;
+      }
+      if (!updated) return null;
+      const age = Date.now() - updated.getTime();
+      const c = age < 45 * 6e4 ? "var(--green)" : age < STALE_AFTER_MS ? "var(--yellow)" : "var(--red)";
+      return <div className="status" style={{ "--c": c }}><span className="dot" />Updated {relTime(updated)}</div>;
+    }
+
     function GradeRow({ a, showClass, onClick }) {
       const Tag = onClick ? "button" : "div";
-      const meta = [showClass && a.className, a.category, a.date && shortDate(a.date)].filter(Boolean).join(" · ");
       return (
         <Tag className="row" onClick={onClick}>
           <div className="row-main">
             <div className="row-title">{a.isNew && <span className="dot-new" />}{a.title}</div>
-            {meta && <div className="row-sub">{meta}</div>}
+            <div className="chips">
+              {showClass && <span className="tag" style={{ "--c": a.color }}><i /><span>{a.className}</span></span>}
+              {a.category && <span className="tag" style={{ "--c": a.catColor }}><span>{a.category}</span></span>}
+              {a.date && <span className="meta">{shortDate(a.date)}</span>}
+            </div>
             {a.note && <div className="note">{a.note}</div>}
           </div>
-          <div className="score">
-            {a.scoreText != null ? (
-              <b style={{ color: tone(a.pct) }}>
-                {a.scoreText}{a.possible != null && <span className="of">/{fmt(a.possible)}</span>}
-              </b>
-            ) : <b className="muted">—</b>}
+          <div className="score" style={{ "--c": a.scoreText != null ? tone(a.pct) : "var(--text-3)" }}>
+            <b>{a.scoreText ?? "—"}{a.scoreText != null && a.possible != null && <span className="of">/{fmt(a.possible)}</span>}</b>
             <small>{a.pct != null ? `${fmt(a.pct)}%` : a.scoreText == null ? "Not graded" : ""}</small>
           </div>
         </Tag>
       );
     }
 
-    function UpcomingRow({ item }) {
+    function UpcomingRow({ item, onToggle }) {
       const [open, setOpen] = useState(false);
       const d = item.due;
+      const c = urgency(d, item.done);
       const canOpen = !!item.description;
-      const toggle = () => canOpen && setOpen(o => !o);
+      const toggleOpen = () => canOpen && setOpen(o => !o);
       return (
         <div className={`up${open ? " open" : ""}${item.done ? " done" : ""}`}
-          role={canOpen ? "button" : undefined} tabIndex={canOpen ? 0 : undefined}
-          aria-expanded={canOpen ? open : undefined}
-          onClick={toggle} onKeyDown={e => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle())}>
-          <div className="up-date">
-            <small>{d ? d.toLocaleDateString(undefined, { month: "short" }) : "—"}</small>
-            <b>{d ? d.getDate() : "?"}</b>
+          role={canOpen ? "button" : undefined} tabIndex={canOpen ? 0 : undefined} aria-expanded={canOpen ? open : undefined}
+          onClick={toggleOpen}
+          onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleOpen(); } }}>
+          <div className="date-tile" style={{ "--c": c }}>
+            <small>{d ? d.toLocaleDateString(undefined, { month: "short" }) : "TBD"}</small>
+            <b>{d ? d.getDate() : "–"}</b>
           </div>
           <div className="row-main">
             <div className="row-title">{item.isNew && <span className="dot-new" />}{item.title}</div>
-            {(item.className || item.type) && <div className="row-sub">{[item.className, item.type].filter(Boolean).join(" · ")}</div>}
             <div className="chips">
-              <span className={`pill ${item.done ? "" : dueTone(d)}`}>{dueLabel(d)}</span>
-              {item.done && <span className="pill ok">{I.check} Done</span>}
-              {canOpen && !open && <span className="pill">Details</span>}
+              {item.className && <span className="tag" style={{ "--c": item.color }}><i /><span>{item.className}</span></span>}
+              {item.type && <span className="tag" style={{ "--c": typeColor(item.type) }}><span>{item.type}</span></span>}
+              <span className="due" style={{ color: c }}>{item.done ? (item.doneRemote ? "Completed" : "Done") : dueLabel(d)}</span>
             </div>
             {open && <div className="desc">{item.description}</div>}
+            {canOpen && !open && <div className="more">Tap for details</div>}
           </div>
+          {onToggle && (
+            <button className={`check${item.done ? " on" : ""}`} aria-pressed={item.done}
+              aria-label={item.done ? "Mark as not done" : "Mark as done"}
+              onClick={e => { e.stopPropagation(); onToggle(item); }}>
+              <Icon name="check" size={16} stroke={3} />
+            </button>
+          )}
         </div>
       );
     }
@@ -621,27 +934,37 @@
     function ClassCard({ c, onClick }) {
       const newCount = c.graded.filter(a => a.isNew).length;
       return (
-        <button className="class-card" onClick={onClick}>
+        <button className="class-card" style={{ "--c": c.color }} onClick={onClick}>
           <div className="class-top">
+            <span className="mono">{c.monogram}</span>
             <div className="row-main">
               <div className="class-name">{c.name}</div>
               {c.teacher && <div className="row-sub">{c.teacher}</div>}
             </div>
             <div className="class-grade">
               <div className="class-avg" style={{ color: tone(c.avg) }}>{fmt(c.avg)}</div>
-              {c.grade && <span className="pill">{c.grade}</span>}
+              {c.grade && <span className="tag" style={{ "--c": tone(c.avg) }}><span>{c.grade}</span></span>}
             </div>
           </div>
-          <div className="bar"><i style={{ width: `${clamp(c.avg)}%`, background: tone(c.avg) }} /></div>
+          <div className="bar"><i style={{ width: `${clamp(c.avg)}%`, background: `linear-gradient(90deg, ${c.color}, ${tone(c.avg)})` }} /></div>
           <div className="class-meta">
             <span>{c.graded.length ? `${c.graded.length} ${c.graded.length === 1 ? "score" : "scores"}` : "No scores yet"}</span>
-            {newCount > 0 && <span className="pill new">{newCount} new</span>}
+            {newCount > 0 && <span className="tag" style={{ "--c": "var(--violet)" }}><span>{newCount} new</span></span>}
+            <span className="chev"><Icon name="chevron" size={18} /></span>
           </div>
         </button>
       );
     }
 
-    function Sheet({ onClose, children }) {
+    const ClassTile = ({ c, onClick }) => (
+      <button className="class-tile" style={{ "--c": c.color }} onClick={onClick}>
+        <span className="mono">{c.monogram}</span>
+        <span className="tile-name">{c.name}</span>
+        <span className="tile-avg" style={{ color: tone(c.avg) }}>{fmt(c.avg)}{c.grade && <small> {c.grade}</small>}</span>
+      </button>
+    );
+
+    function Sheet({ onClose, tint, children }) {
       const [closing, setClosing] = useState(false);
       const [drag, setDrag] = useState(0);
       const startY = useRef(null);
@@ -660,9 +983,10 @@
         };
       }, []);
 
-      const style = closing
-        ? { transform: "translateY(100%)" }
-        : drag ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined;
+      const style = {
+        ...(tint ? { background: `radial-gradient(120% 45% at 0% 0%, color-mix(in srgb, ${tint} 22%, transparent), transparent 70%), var(--surface)` } : {}),
+        ...(closing ? { transform: "translateY(100%)" } : drag ? { transform: `translateY(${drag}px)`, transition: "none" } : {}),
+      };
 
       return (
         <div className={`sheet-wrap${closing ? " closing" : ""}`}>
@@ -683,75 +1007,164 @@
     /* ---------- Sheets ---------- */
     function ClassSheet({ cls, onClose }) {
       return (
-        <Sheet onClose={onClose}>
+        <Sheet onClose={onClose} tint={cls.color}>
           <div className="sheet-head">
-            <div style={{ minWidth: 0 }}>
+            <span className="mono lg" style={{ "--c": cls.color }}>{cls.monogram}</span>
+            <div className="row-main">
               <h3>{cls.name}</h3>
               {cls.teacher && <p>{cls.teacher}</p>}
             </div>
-            <div className="big-avg" style={{ color: tone(cls.avg) }}>
-              {fmt(cls.avg)}
-              {cls.grade && <span className="pill">{cls.grade}</span>}
-            </div>
           </div>
-          {cls.teacherEmail && <a className="link-btn" href={`mailto:${cls.teacherEmail}`}>{I.mail} Email teacher</a>}
-          <div className="section-head"><h2>Scores · {cls.graded.length}</h2></div>
+          <div className="mini-stats">
+            <div><b style={{ color: tone(cls.avg) }}>{fmt(cls.avg)}</b><span>Average</span></div>
+            <div><b>{cls.grade || "—"}</b><span>Grade</span></div>
+            <div><b>{cls.graded.length}</b><span>Scores</span></div>
+            <div><b style={{ color: tone(cls.best) }}>{cls.best != null ? `${fmt(cls.best)}%` : "—"}</b><span>Best</span></div>
+          </div>
+          {cls.teacherEmail && <a className="link-btn" href={`mailto:${cls.teacherEmail}`}><Icon name="mail" size={18} /> Email {cls.teacher || "teacher"}</a>}
+
+          {cls.categories.length > 0 && (
+            <>
+              <div className="section-head"><h2>By category</h2></div>
+              <div className="list">
+                {cls.categories.map(cat => (
+                  <div className="cat-row" key={cat.name}>
+                    <span className="tag" style={{ "--c": cat.color }}><i /><span>{cat.name}</span></span>
+                    <span className="cat-pct" style={{ color: tone(cat.avg) }}>{fmt(cat.avg)}% <small>· {cat.count}</small></span>
+                    <div className="bar"><i style={{ width: `${clamp(cat.avg)}%`, background: tone(cat.avg) }} /></div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="section-head"><h2>Scores</h2></div>
           {cls.assignments.length
             ? <div className="list">{cls.assignments.map((a, i) => <GradeRow key={i} a={a} />)}</div>
-            : <div className="card empty">No scores yet this marking period.</div>}
+            : <Empty icon="chart" color={cls.color}>No scores yet this marking period.</Empty>}
         </Sheet>
       );
     }
 
-    function SettingsSheet({ user, push, model, onClose, onCopy }) {
+    function GitHubSetup({ refresh, notify }) {
+      const [value, setValue] = useState("");
+      const [busy, setBusy] = useState(false);
+      const [error, setError] = useState(null);
+
+      if (refresh.token === undefined) return <div className="list"><div className="row"><span className="spinner" /></div></div>;
+
+      if (refresh.token) {
+        return (
+          <div className="list">
+            <div className="row">
+              <span className="row-icon" style={{ "--c": "var(--green)" }}><Icon name="refresh" size={20} /></span>
+              <div className="row-main">
+                <div className="row-title">On</div>
+                <div className="row-sub wrap">Checks PlusPortals when you open the app and the data is over 10 minutes old. The refresh button checks right away.</div>
+              </div>
+            </div>
+            <button className="row" onClick={async () => { await refresh.removeToken(); notify("GitHub token removed"); }}>
+              <div className="row-main"><div className="row-title danger-text">Remove GitHub token</div></div>
+            </button>
+          </div>
+        );
+      }
+
+      const save = async e => {
+        e.preventDefault();
+        setBusy(true);
+        setError(null);
+        try {
+          await refresh.saveToken(value);
+          setValue("");
+          notify("Connected. The app now refreshes when you open it.");
+        } catch (err) {
+          setError(err.code === "permission-denied" ? "Couldn't save. Publish the updated Firestore rules." : err.message);
+        }
+        setBusy(false);
+      };
+
+      return (
+        <form className="card setup" onSubmit={save}>
+          <p>Paste a GitHub <b>fine-grained token</b> with access to <code>{GITHUB.repo}</code> only and <b>Actions: Read and write</b> permission. It's saved to your account, and only you can read it.</p>
+          <div className="input-row">
+            <input className="field" type="password" placeholder="github_pat_…" value={value} onChange={e => setValue(e.target.value)} autoComplete="off" spellCheck={false} required />
+            <button className="btn small" type="submit" disabled={busy || !value.trim()}>{busy ? "Checking…" : "Save"}</button>
+          </div>
+          {error && <p className="form-msg error">{error}</p>}
+        </form>
+      );
+    }
+
+    function SettingsSheet({ user, push, refresh, model, onClose, onCopy, onResetPastDue, notify }) {
       const st = push.status;
       return (
         <Sheet onClose={onClose}>
           <h3 className="sheet-title">Settings</h3>
 
-          <div className="section-head"><h2>Notifications</h2></div>
-          <div className="list">
-            <div className="row">
-              <span className="row-icon">{I.bell}</span>
-              <div className="row-main">
-                <div className="row-title">New assignments & grades</div>
-                <div className="row-sub wrap">{PUSH_TEXT[st]}</div>
-              </div>
-              {st === "off" && <button className="btn small" onClick={push.enable}>Turn on</button>}
-              {st === "on" && <button className="btn small ghost" onClick={push.disable}>Turn off</button>}
-              {st === "busy" && <span className="spinner" />}
-            </div>
-          </div>
-          <p className="caption" style={{ marginTop: 0 }}>Sent each time the scraper runs on GitHub.</p>
+          <Section icon="refresh" color="var(--blue)" title="Refresh on open">
+            <GitHubSetup refresh={refresh} notify={notify} />
+          </Section>
 
-          <div className="section-head"><h2>Account</h2></div>
-          <div className="list">
-            <div className="row">
-              <div className="row-main">
-                <div className="row-title">{user.email}</div>
-                <div className="row-sub">Signed in</div>
+          <Section icon="bell" color="var(--violet)" title="Notifications">
+            <div className="list">
+              <div className="row">
+                <span className="row-icon" style={{ "--c": "var(--violet)" }}><Icon name="bell" size={20} /></span>
+                <div className="row-main">
+                  <div className="row-title">New assignments & grades</div>
+                  <div className="row-sub wrap">{PUSH_TEXT[st]}</div>
+                </div>
+                {st === "off" && <button className="btn small" onClick={push.enable}>Turn on</button>}
+                {st === "on" && <button className="btn small ghost" onClick={push.disable}>Turn off</button>}
+                {st === "busy" && <span className="spinner" />}
               </div>
             </div>
-            <button className="row" onClick={() => onCopy(user.uid)}>
-              <div className="row-main">
-                <div className="row-title mono">{user.uid}</div>
-                <div className="row-sub">Your UID · DASHBOARD_UID in scraper.js must match</div>
-              </div>
-              {I.copy}
-            </button>
-          </div>
+          </Section>
 
-          <div className="section-head"><h2>Data</h2></div>
-          <div className="list">
-            <div className="row">
-              <div className="row-main"><div className="row-title">Last updated</div></div>
-              <span className="muted">{model?.updated ? model.updated.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "—"}</span>
+          {model && model.pastDueAck != null && (
+            <Section icon="alert" color="var(--red)" title="Past due">
+              <div className="list">
+                <div className="row">
+                  <div className="row-main">
+                    <div className="row-title">{model.pastDueAck} cleared</div>
+                    <div className="row-sub wrap">Only work that becomes past due after you cleared it is counted.</div>
+                  </div>
+                  <button className="btn small ghost" onClick={onResetPastDue}>Show all</button>
+                </div>
+              </div>
+            </Section>
+          )}
+
+          <Section icon="key" color="var(--yellow)" title="Account">
+            <div className="list">
+              <div className="row">
+                <div className="row-main">
+                  <div className="row-title">{user.email}</div>
+                  <div className="row-sub">Signed in</div>
+                </div>
+              </div>
+              <button className="row" onClick={() => onCopy(user.uid)}>
+                <div className="row-main">
+                  <div className="row-title mono-text">{user.uid}</div>
+                  <div className="row-sub">Your UID · DASHBOARD_UID in scraper.js must match</div>
+                </div>
+                <Icon name="copy" size={18} />
+              </button>
             </div>
-            <a className="row" href={PLUSPORTALS_URL} target="_blank" rel="noopener noreferrer">
-              <div className="row-main"><div className="row-title">Open PlusPortals</div></div>
-              {I.external}
-            </a>
-          </div>
+          </Section>
+
+          <Section icon="clock" color="var(--green)" title="Data">
+            <div className="list">
+              <div className="row">
+                <div className="row-main"><div className="row-title">Last updated</div></div>
+                <span className="muted">{model?.updated ? model.updated.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "—"}</span>
+              </div>
+              <a className="row" href={PLUSPORTALS_URL} target="_blank" rel="noopener noreferrer">
+                <div className="row-main"><div className="row-title">Open PlusPortals</div></div>
+                <Icon name="external" size={18} />
+              </a>
+            </div>
+          </Section>
 
           <button className="btn danger" onClick={() => auth.signOut()}>Sign out</button>
         </Sheet>
@@ -759,7 +1172,7 @@
     }
 
     /* ---------- Views ---------- */
-    function HomeView({ model, goTo, openClass }) {
+    function HomeView({ model, goTo, openClass, onToggle }) {
       const soon = model.pending.slice(0, 4);
       const stale = model.updated && Date.now() - model.updated.getTime() > STALE_AFTER_MS;
       return (
@@ -767,89 +1180,136 @@
           {stale && <div className="card warn-card">Last update was {relTime(model.updated)}. Check the scraper's runs in GitHub Actions.</div>}
 
           <div className="card summary">
-            <div className="ring-wrap">
+            <div className="summary-top">
               <Ring value={model.overall} />
-              <span>Average</span>
+              <div className="summary-text">
+                <small>Overall average{model.mpLabel ? ` · ${model.mpLabel}` : ""}</small>
+                {model.best ? (
+                  <div className="summary-line" style={{ "--c": model.best.color }}>
+                    <i /><span>Top: {model.best.name}</span><b style={{ color: tone(model.best.avg) }}>{fmt(model.best.avg)}</b>
+                  </div>
+                ) : <div className="summary-line"><span>No averages posted yet</span></div>}
+                {model.worst && (
+                  <div className="summary-line" style={{ "--c": model.worst.color }}>
+                    <i /><span>Lowest: {model.worst.name}</span><b style={{ color: tone(model.worst.avg) }}>{fmt(model.worst.avg)}</b>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="stats">
-              <Stat value={model.classes.length} label="Classes" onClick={() => goTo("classes")} />
-              <Stat value={model.gradedCount} label="Scores" />
-              <Stat value={model.pending.length} label="To do" onClick={() => goTo("upcoming")} />
-              <Stat value={model.pastDue ?? "—"} label="Past due" color={model.pastDue ? "var(--red)" : undefined} />
+              <Stat icon="book" color="var(--blue)" value={model.classes.length} label="Classes" onClick={() => goTo("classes")} />
+              <Stat icon="chart" color="var(--green)" value={model.gradedCount} label="Scores" />
+              <Stat icon="list" color="var(--yellow)" value={model.pending.length} label="To do" onClick={() => goTo("upcoming")} />
+              <Stat icon="alert" color="var(--red)" value={model.pastDueVisible ?? "—"} label="Past due" onClick={() => goTo("upcoming")} />
             </div>
           </div>
 
           {model.fresh.length > 0 && (
-            <Section title="New" note="last 3 days">
+            <Section icon="sparkle" color="var(--violet)" title="New" note="last 3 days">
               <div className="list">
                 {model.fresh.map((f, i) => f.kind === "grade"
                   ? <GradeRow key={`g${i}`} a={f.item} showClass onClick={() => openClass(f.item.sectionId)} />
-                  : <UpcomingRow key={`u${i}`} item={f.item} />)}
+                  : <UpcomingRow key={`u${i}`} item={f.item} onToggle={onToggle} />)}
               </div>
             </Section>
           )}
 
-          <Section title="Due soon" action={model.pending.length > soon.length ? { label: "See all", onClick: () => goTo("upcoming") } : null}>
+          <Section icon="clock" color="var(--orange)" title="Due soon" action={model.pending.length > soon.length ? { label: "See all", onClick: () => goTo("upcoming") } : null}>
             {soon.length
-              ? <div className="list">{soon.map(u => <UpcomingRow key={u.key} item={u} />)}</div>
-              : <div className="card empty">Nothing due right now.</div>}
+              ? <div className="list">{soon.map(u => <UpcomingRow key={u.key} item={u} onToggle={onToggle} />)}</div>
+              : <Empty>Nothing due right now.</Empty>}
           </Section>
 
-          <Section title="Recent scores">
+          {model.classes.length > 0 && (
+            <Section icon="book" color="var(--blue)" title="Your classes" action={{ label: "See all", onClick: () => goTo("classes") }}>
+              <div className="scroller">{model.classes.map(c => <ClassTile key={c.sectionId} c={c} onClick={() => openClass(c.sectionId)} />)}</div>
+            </Section>
+          )}
+
+          <Section icon="chart" color="var(--green)" title="Recent scores">
             {model.recent.length
               ? <div className="list">{model.recent.map((a, i) => <GradeRow key={i} a={a} showClass onClick={() => openClass(a.sectionId)} />)}</div>
-              : <div className="card empty">No scores yet this marking period.</div>}
+              : <Empty icon="chart" color="var(--blue)">No scores yet this marking period.</Empty>}
           </Section>
         </>
       );
     }
 
     function ClassesView({ model, openClass }) {
-      if (!model.classes.length) return <div className="card empty">No classes found.</div>;
+      if (!model.classes.length) return <Empty icon="book" color="var(--blue)">No classes found.</Empty>;
       return model.classes.map(c => <ClassCard key={c.sectionId} c={c} onClick={() => openClass(c.sectionId)} />);
     }
 
-    function UpcomingView({ model }) {
+    function UpcomingView({ model, onToggle, onMarkAll, onClearPastDue }) {
       const [filter, setFilter] = useState("todo");
-      const items = filter === "todo" ? model.pending : model.upcoming;
+      const items = filter === "todo" ? model.pending : filter === "done" ? model.completed : model.upcoming;
       const groups = {};
-      for (const u of items) (groups[bucket(u.due)] ||= []).push(u);
+      if (filter === "done") groups.Done = items;
+      else for (const u of items) (groups[bucket(u.due)] ||= []).push(u);
+      const order = filter === "done" ? [["Done", "var(--green)"]] : BUCKETS;
+
       return (
         <>
+          {model.pastDueVisible > 0 && (
+            <div className="alert-card">
+              <span className="icon"><Icon name="alert" /></span>
+              <div className="row-main">
+                <b>{model.pastDueVisible} past due</b>
+                <span>PlusPortals only shares the count, not the list.</span>
+              </div>
+              <button className="btn small ghost" onClick={onClearPastDue}>Clear</button>
+            </div>
+          )}
+
           <div className="toolbar">
             <div className="seg">
-              <button className={filter === "todo" ? "on" : ""} onClick={() => setFilter("todo")}>To do</button>
+              <button className={filter === "todo" ? "on" : ""} onClick={() => setFilter("todo")}>To do<span>{model.pending.length}</span></button>
+              <button className={filter === "done" ? "on" : ""} onClick={() => setFilter("done")}>Done</button>
               <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
             </div>
-            {model.pastDue ? <span className="pill warn">{model.pastDue} past due</span> : null}
+            {filter === "todo" && model.pending.length > 0 && (
+              <button className="btn-pill" onClick={onMarkAll}><Icon name="checks" size={17} stroke={2.2} /> Mark all done</button>
+            )}
           </div>
-          {!items.length && <div className="card empty">{filter === "todo" ? "You're all caught up." : "No upcoming coursework posted."}</div>}
-          {BUCKETS.filter(k => groups[k]).map(k => (
-            <Section key={k} title={k}>
-              <div className="list">{groups[k].map(u => <UpcomingRow key={u.key} item={u} />)}</div>
+
+          {!items.length && (
+            filter === "todo" ? <Empty>You're all caught up.</Empty>
+            : filter === "done" ? <Empty icon="list" color="var(--blue)">Nothing marked done yet.</Empty>
+            : <Empty icon="calendar" color="var(--blue)">No upcoming coursework posted.</Empty>
+          )}
+
+          {order.filter(([k]) => groups[k] && groups[k].length).map(([k, color]) => (
+            <Section key={k} dot color={color} title={k} note={`${groups[k].length}`}>
+              <div className="list">{groups[k].map(u => <UpcomingRow key={u.key} item={u} onToggle={onToggle} />)}</div>
             </Section>
           ))}
-          {model.pastDue ? <p className="caption">PlusPortals only reports the past-due count; open it there to see the list.</p> : null}
         </>
       );
     }
 
     const Skeleton = () => (
       <>
-        <div className="sk" style={{ height: 136 }} />
-        <div className="sk" style={{ height: 76 }} />
-        <div className="sk" style={{ height: 76 }} />
-        <div className="sk" style={{ height: 200 }} />
+        <div className="sk" style={{ height: 190 }} />
+        <div className="sk" style={{ height: 80 }} />
+        <div className="sk" style={{ height: 80 }} />
+        <div className="sk" style={{ height: 160 }} />
       </>
     );
 
     /* ---------- Screens ---------- */
+    const GLOWS = {
+      home: ["rgba(79,140,255,.24)", "rgba(160,132,255,.2)"],
+      classes: ["rgba(60,203,127,.18)", "rgba(79,140,255,.2)"],
+      upcoming: ["rgba(255,138,61,.2)", "rgba(244,183,64,.14)"],
+    };
+
     function Dashboard({ user }) {
       const [state, setState] = useState({ status: "loading", data: null, error: null });
       const [tab, setTab] = useState("home");
       const [openSection, setOpenSection] = useState(null);
       const [settingsOpen, setSettingsOpen] = useState(false);
-      const [toast, showToast] = useToast();
+      const [toast, showToast, hideToast] = useToast();
+      const [dash, saveDash] = useDash(user.uid);
       const push = usePush(user, showToast);
       const titleRef = useRef(null);
       const compact = useCompact(titleRef);
@@ -862,8 +1322,66 @@
 
       useEffect(() => { window.scrollTo(0, 0); }, [tab]);
 
-      const model = useMemo(() => (state.data ? buildModel(state.data) : null), [state.data]);
+      const model = useMemo(() => (state.data ? buildModel(state.data, dash) : null), [state.data, dash]);
+      const updatedMs = model && model.updated ? model.updated.getTime() : null;
+      const refresh = useRefresh(user.uid, updatedMs, state.status !== "loading", showToast);
       const openClass = model && openSection != null ? model.classes.find(c => c.sectionId === openSection) : null;
+
+      // Saving done items / cleared past due
+      const dashRef = useRef(dash); dashRef.current = dash;
+      const modelRef = useRef(model); modelRef.current = model;
+      const writeDash = useCallback(async patch => {
+        const cur = dashRef.current;
+        const next = { done: cur.done || {}, pastDueAck: cur.pastDueAck ?? null, ...patch };
+        const m = modelRef.current;
+        if (m) {
+          const live = new Set(m.upcoming.map(u => u.doneKey));
+          const cutoff = Date.now() - 30 * 864e5;
+          next.done = Object.fromEntries(Object.entries(next.done).filter(([k, t]) => live.has(k) || t > cutoff));
+        }
+        try {
+          await saveDash(next);
+        } catch (err) {
+          showToast(err.code === "permission-denied" ? "Couldn't save. Publish the updated Firestore rules." : "Couldn't save that change.");
+        }
+      }, [saveDash, showToast]);
+
+      const toggleDone = item => {
+        if (item.doneRemote) return showToast("Already marked complete in PlusPortals");
+        const done = { ...dashRef.current.done };
+        if (done[item.doneKey]) delete done[item.doneKey];
+        else done[item.doneKey] = Date.now();
+        writeDash({ done });
+      };
+      const markAllDone = () => {
+        const targets = model.pending;
+        if (!targets.length) return;
+        const before = { ...dashRef.current.done };
+        const done = { ...before };
+        const now = Date.now();
+        targets.forEach(u => { done[u.doneKey] = now; });
+        writeDash({ done });
+        showToast(`Marked ${targets.length} as done`, { label: "Undo", onClick: () => writeDash({ done: before }) });
+      };
+      const clearPastDue = () => {
+        const before = dashRef.current.pastDueAck ?? null;
+        const count = model.pastDueVisible;
+        writeDash({ pastDueAck: model.pastDue });
+        showToast(`Cleared ${count} past due`, { label: "Undo", onClick: () => writeDash({ pastDueAck: before }) });
+      };
+      const resetPastDue = () => writeDash({ pastDueAck: null });
+
+      // If PlusPortals' past-due count drops below what you cleared, follow it down
+      useEffect(() => {
+        if (model && model.pastDue != null && dash.pastDueAck != null && model.pastDue < dash.pastDueAck) {
+          writeDash({ pastDueAck: model.pastDue });
+        }
+      }, [model && model.pastDue, dash.pastDueAck]);
+
+      const doRefresh = async () => {
+        const result = await refresh.trigger(true);
+        if (result === "no-token") showToast("Connect GitHub to refresh from here", { label: "Set up", onClick: () => setSettingsOpen(true) });
+      };
 
       const copy = async text => {
         try { await navigator.clipboard.writeText(text); showToast("Copied"); }
@@ -871,33 +1389,34 @@
       };
 
       const titles = { home: "Grades", classes: "Classes", upcoming: "Upcoming" };
-      let subtitle = state.status === "loading" ? "Loading…" : "";
-      if (model) {
-        if (tab === "home") subtitle = [model.mpLabel, model.updated && `Updated ${relTime(model.updated)}`].filter(Boolean).join(" · ");
-        if (tab === "classes") subtitle = [`${model.classes.length} classes`, model.mpLabel].filter(Boolean).join(" · ");
-        if (tab === "upcoming") subtitle = [`${model.pending.length} to do`, model.pastDue ? `${model.pastDue} past due` : ""].filter(Boolean).join(" · ");
-      }
+      let eyebrow = "";
+      if (tab === "home") eyebrow = `${greeting()} · ${new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`;
+      if (tab === "classes" && model) eyebrow = [`${model.classes.length} classes`, model.mpLabel].filter(Boolean).join(" · ");
+      if (tab === "upcoming" && model) eyebrow = [`${model.pending.length} to do`, model.pastDueVisible ? `${model.pastDueVisible} past due` : ""].filter(Boolean).join(" · ");
+
       const dots = {
         classes: !!model?.fresh.some(f => f.kind === "grade"),
         upcoming: !!model?.fresh.some(f => f.kind === "assignment"),
       };
-      const tabs = [["home", "Home", I.home], ["classes", "Classes", I.book], ["upcoming", "Upcoming", I.calendar]];
+      const tabs = [["home", "Home", "home"], ["classes", "Classes", "book"], ["upcoming", "Upcoming", "calendar"]];
+      const actions = (
+        <div className="actions">
+          <IconButton label="Refresh" onClick={doRefresh} spinning={refresh.phase !== "idle"}><Icon name="refresh" /></IconButton>
+          <IconButton label="Settings" onClick={() => setSettingsOpen(true)}><Icon name="settings" /></IconButton>
+        </div>
+      );
 
       return (
         <div className="app">
           <div className={`topbar${compact ? " show" : ""}`}>
-            <div className="topbar-inner">
-              <span>{titles[tab]}</span>
-              <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>{I.settings}</IconButton>
-            </div>
+            <div className="topbar-inner"><span>{titles[tab]}</span>{actions}</div>
           </div>
 
-          <header className="hero">
-            <div className="hero-actions">
-              <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>{I.settings}</IconButton>
-            </div>
+          <header className="hero" style={{ "--g1": GLOWS[tab][0], "--g2": GLOWS[tab][1] }}>
+            {actions}
+            {eyebrow && <div className="eyebrow">{eyebrow}</div>}
             <h1 ref={titleRef}>{titles[tab]}</h1>
-            {subtitle && <p>{subtitle}</p>}
+            <StatusPill phase={refresh.phase} updated={model?.updated} />
           </header>
 
           <main className="content">
@@ -905,7 +1424,7 @@
             {state.status === "empty" && (
               <div className="card notice">
                 <p><b>No grades for this account yet.</b> Set <code>DASHBOARD_UID</code> in scraper.js to this UID, then run the workflow:</p>
-                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code>{I.copy}</button>
+                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code><Icon name="copy" size={18} /></button>
               </div>
             )}
             {state.status === "error" && (
@@ -913,19 +1432,19 @@
                 <p><b>Can't read your grades.</b> {state.error?.code === "permission-denied"
                   ? "Make sure the Firestore rules are published and DASHBOARD_UID matches this UID:"
                   : state.error?.message}</p>
-                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code>{I.copy}</button>
+                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code><Icon name="copy" size={18} /></button>
               </div>
             )}
-            {model && tab === "home" && <HomeView model={model} goTo={setTab} openClass={setOpenSection} />}
+            {model && tab === "home" && <HomeView model={model} goTo={setTab} openClass={setOpenSection} onToggle={toggleDone} />}
             {model && tab === "classes" && <ClassesView model={model} openClass={setOpenSection} />}
-            {model && tab === "upcoming" && <UpcomingView model={model} />}
+            {model && tab === "upcoming" && <UpcomingView model={model} onToggle={toggleDone} onMarkAll={markAllDone} onClearPastDue={clearPastDue} />}
           </main>
 
           <nav className="tabbar">
             <div className="tabbar-inner">
               {tabs.map(([id, label, icon]) => (
                 <button key={id} className={`tab${tab === id ? " active" : ""}`} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}>
-                  <span className="ico">{icon}{dots[id] && <i className="tab-dot" />}</span>
+                  <span className="ico"><Icon name={icon} />{dots[id] && <i className="tab-dot" />}</span>
                   {label}
                 </button>
               ))}
@@ -933,8 +1452,16 @@
           </nav>
 
           {openClass && <ClassSheet cls={openClass} onClose={() => setOpenSection(null)} />}
-          {settingsOpen && <SettingsSheet user={user} push={push} model={model} onClose={() => setSettingsOpen(false)} onCopy={copy} />}
-          {toast && <div className="toast" key={toast.id} role="status">{toast.text}</div>}
+          {settingsOpen && (
+            <SettingsSheet user={user} push={push} refresh={refresh} model={model}
+              onClose={() => setSettingsOpen(false)} onCopy={copy} onResetPastDue={resetPastDue} notify={showToast} />
+          )}
+          {toast && (
+            <div className="toast" key={toast.id} role="status">
+              <span>{toast.text}</span>
+              {toast.action && <button onClick={() => { toast.action.onClick(); hideToast(); }}>{toast.action.label}</button>}
+            </div>
+          )}
         </div>
       );
     }
