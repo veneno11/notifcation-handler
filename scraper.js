@@ -5,17 +5,21 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-// ===== Config (from your Network capture) =====
+// ===== Config =====
 const BASE = 'https://www.plusportals.com';
 const LOGIN_URL = `${BASE}/VillageSchool`;
-const STUDENT_ID = 12136;
-const MARKING_PERIOD_ID = 132; // current term; we'll automate this once we see GetMarkingPeriod's shape
-// ==============================================
+const MARKING_PERIOD_ID = 132;      // fallback only; the current term is detected automatically
+const SCORE_ID_FIELD = 'sectionId'; // switch to 'courseId' if 9333 turns out to be a CourseId
+const DASHBOARD_UID = '';           // Firebase Auth UID; empty = old users/<email prefix> path
+// ==================
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36';
 
-// Minimal cookie jar. _pps=-360 was in your browser (looks like your UTC-6 offset); harmless to send.
+// ---------- Cookie jar & HTTP ----------
+
+// _pps=-360 was in your browser (looks like your UTC-6 offset); harmless to send.
 const jar = new Map([['_pps', '-360']]);
+
 function storeCookies(res) {
   for (const c of res.headers['set-cookie'] || []) {
     const pair = c.split(';')[0];
@@ -49,10 +53,56 @@ async function follow(res, hops = 5) {
   return res;
 }
 
+// ---------- Helpers ----------
+
 function extractToken(html) {
   const input = String(html).match(/<input[^>]*name="__RequestVerificationToken"[^>]*>/i);
   return input ? (input[0].match(/value="([^"]*)"/i) || [])[1] : null;
 }
+
+const isTrue = v => String(v).toLowerCase() === 'true';
+const rowsOf = d => (Array.isArray(d) ? d : Array.isArray(d?.Data) ? d.Data : []);
+
+function expectJson(res, label) {
+  const type = res.headers['content-type'] || '';
+  if (res.status !== 200 || !type.includes('json')) {
+    throw new Error(`${label}: status ${res.status}, content-type ${type || 'none'} (expected JSON)`);
+  }
+  return res.data;
+}
+
+// JSON/grid requests (need the anti-forgery header)
+function api(session, { method = 'post', path, data }) {
+  return request({
+    method,
+    url: BASE + path,
+    data,
+    headers: {
+      '__RequestVerificationToken': session.apiToken,
+      'X-Requested-With': 'XMLHttpRequest',
+      Accept: 'application/json, text/javascript, */*; q=0.01',
+      Origin: BASE,
+      Referer: session.referer,
+      ...(data != null ? { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' } : {}),
+    },
+  });
+}
+
+// HTML partial-view requests
+function view(session, path) {
+  const sep = path.includes('?') ? '&' : '?';
+  return request({
+    method: 'get',
+    url: `${BASE}${path}${sep}_=${Date.now()}`,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      Accept: 'text/html, */*; q=0.01',
+      Referer: session.referer,
+    },
+  });
+}
+
+// ---------- Login ----------
 
 async function login() {
   console.log('Step 1: GET login page');
@@ -105,63 +155,91 @@ async function login() {
   if (!apiToken) throw new Error('No anti-forgery token on the student page.');
   return { apiToken, referer: home.config.url };
 }
-function api(session, { method = 'post', path, data }) {
-  return request({
-    method,
-    url: BASE + path,
-    data,
-    headers: {
-      '__RequestVerificationToken': session.apiToken,
-      'X-Requested-With': 'XMLHttpRequest',
-      Accept: 'application/json, text/javascript, */*; q=0.01',
-      Origin: BASE,
-      Referer: session.referer,
-      ...(data != null ? { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' } : {}),
-    },
-  });
-}
 
-function expectJson(res, label) {
-  const type = res.headers['content-type'] || '';
-  if (res.status !== 200 || !type.includes('json')) {
-    throw new Error(`${label}: status ${res.status}, content-type ${type || 'none'} (expected JSON)`);
-  }
-  return res.data;
-}
+// ---------- Grades ----------
 
-const rowsOf = d => (Array.isArray(d) ? d : Array.isArray(d?.Data) ? d.Data : []);
+async function fetchAssignments(session, id) {
+  // These two page loads tell the server which class the scores grid is for
+  await view(session, `/ParentStudentDetails/ShowScoresIndex?SelectedCourseID=${id}&groupId=0`);
+  const details = await view(session, `/ParentStudentDetails/ShowScoresDetails?sectionId=${id}&sectionType=N`);
+  const rows = rowsOf(expectJson(
+    await api(session, { path: '/ParentStudentDetails/ShowScoresGridInfo', data: 'sort=&group=&filter=' }),
+    'ShowScoresGridInfo'
+  ));
+  const html = String(details.data);
+  return {
+    rows,
+    detailsKb: Math.round(html.length / 1024),
+    detailsTableRows: (html.match(/<tr\b/gi) || []).length,
+  };
+}
 
 async function fetchGrades(session) {
   console.log('Step 3: marking periods');
-  let markingPeriods = null;
-  try {
-    markingPeriods = expectJson(await api(session, { method: 'get', path: '/ParentStudentDetails/GetMarkingPeriod' }), 'GetMarkingPeriod');
-    console.log(`  ${JSON.stringify(markingPeriods).slice(0, 400)}`); // term names/IDs only
-  } catch (e) {
-    console.log(`  skipped: ${e.message}`);
-  }
+  const periods = rowsOf(expectJson(
+    await api(session, { method: 'get', path: '/ParentStudentDetails/GetMarkingPeriod' }),
+    'GetMarkingPeriod'
+  ));
+  const current = periods.find(p => isTrue(p.isCurrentmarkingPeriod))
+    || periods.find(p => p.MarkingPeriodId === MARKING_PERIOD_ID);
+  if (!current) throw new Error('Could not determine the current marking period.');
+  console.log(`  ${periods.length} periods, current: ${current.MarkingPeriodName} (${current.MarkingPeriodId})`);
 
   console.log('Step 4: class grades');
-  const progress = rowsOf(expectJson(await api(session, {
-    path: `/ParentStudentDetails/ShowGridProgressInfo?markingPeriodId=${MARKING_PERIOD_ID}`,
+  const rows = rowsOf(expectJson(await api(session, {
+    path: `/ParentStudentDetails/ShowGridProgressInfo?markingPeriodId=${current.MarkingPeriodId}`,
     data: 'sort=&group=&filter=',
   }), 'ShowGridProgressInfo'));
-  console.log(`  ${progress.length} classes, fields: ${Object.keys(progress[0] || {}).join(', ')}`);
 
-  console.log('Step 5: coursework');
-  const body = new URLSearchParams({
-    sort: '', page: '1', pageSize: '20', group: '', filter: '',
-    studentId: String(STUDENT_ID), sectionId: '0', courseworkRange: '1',
-    courseworkType: 'All Types', token: '',
-  });
-  const coursework = rowsOf(expectJson(await api(session, {
-    path: '/ParentStudentDetails/GetCourseworkDetailsByStudent',
-    data: body.toString(),
-  }), 'GetCourseworkDetailsByStudent'));
-  console.log(`  ${coursework.length} assignments, fields: ${Object.keys(coursework[0] || {}).join(', ')}`);
+  const classes = rows
+    .filter(r => !isTrue(r.IsWithdrawnCourse))
+    .map(r => ({
+      courseId: r.CourseId ?? null,
+      sectionId: r.SectionId ?? null,
+      name: r.CourseName ?? null,
+      average: r.Average ?? null,
+      grade: r.GradeSymbol ?? null,
+      teacher: r.StaffName ?? null,
+      teacherEmail: r.StaffEmailId ?? null,
+    }));
+  console.log(`  ${classes.length} active classes (${rows.length - classes.length} withdrawn skipped)`);
+  if (!classes.length) throw new Error('No classes returned for the current marking period.');
 
-  return { markingPeriods, progress, coursework };
+  console.log('Step 5: assignment scores');
+  let loggedFields = false;
+  for (const [i, cls] of classes.entries()) {
+    const label = `class ${i + 1} (section ${cls.sectionId}, course ${cls.courseId})`;
+    try {
+      const { rows: scores, detailsKb, detailsTableRows } = await fetchAssignments(session, cls[SCORE_ID_FIELD]);
+      cls.assignments = scores;
+      console.log(`  ${label}: ${scores.length} scores | details page ${detailsKb} KB, ${detailsTableRows} <tr>`);
+      if (scores.length && !loggedFields) {
+        console.log(`  score fields: ${Object.keys(scores[0]).join(', ')}`);
+        loggedFields = true;
+      }
+    } catch (e) {
+      cls.assignments = [];
+      console.log(`  ${label}: failed — ${e.message}`);
+    }
+  }
+
+  return {
+    markingPeriod: {
+      id: current.MarkingPeriodId,
+      name: current.MarkingPeriodName,
+      description: current.Description ?? null,
+    },
+    markingPeriods: periods.map(p => ({
+      id: p.MarkingPeriodId,
+      name: p.MarkingPeriodName,
+      description: p.Description ?? null,
+      current: isTrue(p.isCurrentmarkingPeriod),
+    })),
+    classes,
+  };
 }
+
+// ---------- Main ----------
 
 async function runScraper() {
   try {
@@ -169,10 +247,9 @@ async function runScraper() {
     const grades = await fetchGrades(session);
 
     console.log('Step 6: push to Firestore');
-    const userId = process.env.PLUSPORTALS_USER.split('@')[0];
+    const userId = DASHBOARD_UID || process.env.PLUSPORTALS_USER.split('@')[0];
     await db.collection('users').doc(userId).collection('grades').doc('current').set({
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      markingPeriodId: MARKING_PERIOD_ID,
       ...grades,
     });
     console.log('Successfully updated dashboard data.');
@@ -181,4 +258,5 @@ async function runScraper() {
     process.exit(1);
   }
 }
+
 runScraper();
