@@ -12,7 +12,7 @@ const LOGIN_URL = `${BASE}/VillageSchool`;
 const STUDENT_ID = 12136;
 const MARKING_PERIOD_ID = 132;      // fallback only; the current term is detected automatically
 const SCORE_ID_FIELD = 'sectionId'; // confirmed: section 9333 matched your capture
-const DASHBOARD_UID = '';           // your Firebase Auth UID (the dashboard shows it with a copy button)
+const DASHBOARD_UID = ''; 'NDfVp3jlO1SCqjvx6dPwYOUsAym1'// your Firebase Auth UID (the dashboard shows it with a copy button)
 const DASHBOARD_URL = 'https://veneno11.github.io/personalApi/'; // opened when you tap a notification
 // ==================
 
