@@ -121,6 +121,7 @@ async function notify(app, devicesRef, added) {
 }
 
 async function syncLifeOS(items) {
+  if (items[0]) console.log(`  sample due date from PlusPortals: ${JSON.stringify(items[0].DueDate)}`);
   const raw = process.env.LIFEOS_SERVICE_ACCOUNT;
   if (!raw) { console.log('  skipped: no LIFEOS_SERVICE_ACCOUNT secret'); return; }
 
