@@ -47,13 +47,38 @@ const itemKey = it => crypto.createHash('sha1')
 
 // PlusPortals dates are calendar days -> "YYYY-MM-DD", the format LifeOS uses
 function toISODate(v) {
-  const s = String(v ?? '');
-  const ms = s.match(/\/Date\((-?\d+)/);
-  if (ms) return new Date(Number(ms[1])).toISOString().slice(0, 10);
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+ const MONTHS = { jan: 1, ene: 1, feb: 2, mar: 3, apr: 4, abr: 4, may: 5, jun: 6, jul: 7, aug: 8, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dec: 12, dic: 12 };
+const pad = n => String(n).padStart(2, '0');
+const ymd = (y, m, d) => (m >= 1 && m <= 12 && d >= 1 && d <= 31) ? `${y}-${pad(m)}-${pad(d)}` : null;
+
+// Any PlusPortals due date -> "YYYY-MM-DD" (the calendar day, no timezone shifts)
+function toISODate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date) return isNaN(v) ? null : ymd(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate());
+  if (typeof v === 'object' && typeof v.toDate === 'function') return toISODate(v.toDate());
+  const s = String(v).trim();
+
+  let m = s.match(/\/Date\((-?\d+)/);                          // /Date(1793505171827)/
+  if (m) return toISODate(new Date(Number(m[1])));
+  if (/^\d{10,13}$/.test(s)) return toISODate(new Date(Number(s.length === 10 ? s * 1000 : s)));
+
+  m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);                  // 2026-11-05
+  if (m) return ymd(+m[1], +m[2], +m[3]);
+
+  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);      // 11/05/2026 (month first, like PlusPortals)
+  if (m) {
+    const a = +m[1], b = +m[2];
+    return a > 12 && b <= 12 ? ymd(+m[3], b, a) : ymd(+m[3], a, b); // 25/11/2026 can only be day first
+  }
+
+  // Text months: "Nov 5, 2026", "Thursday, November 05, 2026", "5 de noviembre de 2026"
+  const noTime = s.replace(/\d{1,2}:\d{2}(:\d{2})?\s*(am|pm)?/i, ' ');
+  const year = noTime.match(/\b(\d{4})\b/);
+  const month = norm(noTime).match(/\b(ene|jan|feb|mar(?!tes)|abr|apr|may|jun|jul|ago|aug|sep|set|oct|nov|dic|dec)[a-z]*/);
+  if (year && month) {
+    const day = noTime.replace(year[1], ' ').match(/\b(\d{1,2})\b/);
+    if (day) return ymd(+year[1], MONTHS[month[1]], +day[1]);
+  }
   return null;
 }
 const todayISO = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
