@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1012" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Grades" />
+  <title>Grades</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234F8CFF'/%3E%3Cstop offset='1' stop-color='%238B5CF6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Crect x='14' y='34' width='9' height='16' rx='3' fill='%23fff' fill-opacity='.55'/%3E%3Crect x='27.5' y='26' width='9' height='24' rx='3' fill='%23fff' fill-opacity='.78'/%3E%3Crect x='41' y='16' width='9' height='34' rx='3' fill='%23fff'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #0F1012; --surface: #1A1B1E; --surface-2: #232428; --surface-3: #2E2F35;
+      --line: rgba(255,255,255,.07);
+      --text: #EDEDEF; --text-2: #A1A2A8; --text-3: #6E6F76;
+      --blue: #4F8CFF; --green: #3CCB7F; --yellow: #F4B740; --red: #FF6B6B; --purple: #A084FF;
+      --radius: 22px; --tabbar-h: 64px;
+      --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body { font-family: "SamsungOne", "Samsung Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+    a { color: inherit; text-decoration: none; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+
+    .app { max-width: 560px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 28px); }
+
+    /* One UI-style large title that collapses into a top bar */
+    .topbar { position: fixed; inset: 0 0 auto; z-index: 20; padding-top: var(--safe-t); background: rgba(15,16,18,.84); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-bottom: 1px solid var(--line); opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .2s, transform .2s; }
+    .topbar.show { opacity: 1; transform: none; pointer-events: auto; }
+    .topbar-inner { max-width: 560px; margin: 0 auto; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 22px; font-weight: 650; font-size: 17px; }
+    .hero { position: relative; min-height: clamp(190px, 32vh, 300px); padding: calc(var(--safe-t) + 16px) 22px 20px; display: flex; flex-direction: column; justify-content: flex-end; }
+    .hero-actions { position: absolute; top: calc(var(--safe-t) + 8px); right: 10px; }
+    .hero h1 { margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
+    .hero p { margin: 8px 0 0; color: var(--text-2); font-size: 14px; }
+    .icon-btn { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); transition: background .15s; }
+    .icon-btn:active { background: var(--surface-2); }
+
+    .content { padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
+    .section { display: flex; flex-direction: column; gap: 8px; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 8px; }
+    .section-head h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-2); letter-spacing: .01em; }
+    .section-head h2 span { color: var(--text-3); font-weight: 500; }
+    .caption { margin: -6px 8px 0; color: var(--text-3); font-size: 12.5px; }
+    .link { color: var(--blue); font-weight: 600; font-size: 13.5px; }
+    .muted { color: var(--text-2); }
+
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+    .empty { color: var(--text-3); text-align: center; font-size: 14px; padding: 22px 16px; }
+    .notice p { margin: 0 0 12px; color: var(--text-2); }
+    .notice b { color: var(--text); }
+    .warn-card { background: rgba(244,183,64,.08); border-color: rgba(244,183,64,.25); color: var(--yellow); font-size: 14px; }
+
+    .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    .list > * + * { border-top: 1px solid var(--line); }
+    .row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; text-align: left; }
+    button.row:active, a.row:active, .up:active { background: var(--surface-2); }
+    .row-main { flex: 1; min-width: 0; }
+    .row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-sub { margin-top: 2px; color: var(--text-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-sub.wrap { white-space: normal; }
+    .row-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: rgba(79,140,255,.14); color: var(--blue); }
+    .note { margin-top: 4px; color: var(--text-3); font-size: 12.5px; }
+    .dot-new { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--purple); vertical-align: 1px; }
+    .score { flex-shrink: 0; text-align: right; }
+    .score b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .score .of { color: var(--text-3); font-weight: 500; font-size: 13px; }
+    .score small { display: block; margin-top: 1px; color: var(--text-3); font-size: 12px; }
+
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .pill.new { background: rgba(160,132,255,.16); color: var(--purple); }
+    .pill.warn { background: rgba(255,107,107,.14); color: var(--red); }
+    .pill.soon { background: rgba(244,183,64,.14); color: var(--yellow); }
+    .pill.ok { background: rgba(60,203,127,.14); color: var(--green); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+    .summary { display: flex; align-items: center; gap: 18px; padding: 20px; }
+    .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+    .ring-wrap span { font-size: 12px; color: var(--text-3); }
+    .stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { background: var(--surface-2); border-radius: 16px; padding: 10px 12px; text-align: left; }
+    .stat b { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 12px; color: var(--text-2); }
+
+    .class-card { display: block; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; text-align: left; transition: transform .12s, border-color .15s; }
+    .class-card:active { transform: scale(.985); }
+    .class-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .class-name { font-size: 16px; font-weight: 650; line-height: 1.3; }
+    .class-grade { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .class-avg { font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .bar { height: 6px; margin-top: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: inherit; transition: width .6s ease; }
+    .class-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-3); font-size: 12.5px; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
+    .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+    .seg button { padding: 7px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+    .seg button.on { background: var(--surface-3); color: var(--text); }
+
+    .up { display: flex; gap: 12px; width: 100%; padding: 14px 16px; text-align: left; cursor: pointer; }
+    .up-date { width: 46px; flex-shrink: 0; align-self: flex-start; padding: 6px 0; border-radius: 12px; background: var(--surface-2); text-align: center; line-height: 1.15; }
+    .up-date small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); }
+    .up-date b { font-size: 18px; }
+    .up.open .row-title { white-space: normal; }
+    .up.done .row-title { color: var(--text-3); text-decoration: line-through; }
+    .desc { margin-top: 10px; color: var(--text-2); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
+
+    .tabbar { position: fixed; inset: auto 0 0; z-index: 30; padding: 6px 12px calc(6px + var(--safe-b)); background: rgba(15,16,18,.88); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
+    .tabbar-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
+    .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; color: var(--text-3); font-size: 11.5px; font-weight: 600; text-align: center; }
+    .tab .ico { position: relative; width: 60px; height: 32px; display: grid; place-items: center; border-radius: 999px; transition: background .2s; }
+    .tab.active { color: var(--text); }
+    .tab.active .ico { background: var(--surface-3); }
+    .tab-dot { position: absolute; top: 3px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--purple); border: 2px solid var(--bg); }
+
+    .sheet-wrap { position: fixed; inset: 0; z-index: 50; }
+    .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: fade .25s ease; transition: opacity .22s; }
+    .sheet-wrap.closing .scrim { opacity: 0; }
+    .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; max-height: 90vh; max-height: 90dvh; margin: 0 auto; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; padding-bottom: var(--safe-b); animation: sheetIn .32s cubic-bezier(.2,.8,.2,1); transition: transform .22s ease; }
+    .sheet-grip { display: grid; place-items: center; padding: 10px 0 10px; touch-action: none; cursor: grab; }
+    .sheet-grip span { width: 40px; height: 5px; border-radius: 99px; background: var(--surface-3); }
+    .sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 0 18px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .sheet .list, .sheet .card { background: var(--surface-2); }
+    .sheet button.row:active, .sheet a.row:active { background: var(--surface-3); }
+    .sheet .section-head { padding: 6px 4px 0; }
+    .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .sheet-head h3, .sheet-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
+    .sheet-head p { margin: 4px 0 0; color: var(--text-2); font-size: 14px; }
+    .big-avg { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .link-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--blue); font-weight: 600; font-size: 14px; }
+
+    .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px); z-index: 60; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 11px 16px; border-radius: 14px; background: var(--surface-3); color: var(--text); font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); animation: toastIn .25s ease; }
+    .btn { display: block; width: 100%; padding: 15px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 16px; font-weight: 650; text-align: center; }
+    .btn:disabled { opacity: .6; }
+    .btn.small { width: auto; padding: 8px 16px; font-size: 14px; flex-shrink: 0; }
+    .btn.ghost { background: var(--surface-3); color: var(--text); }
+    .btn.danger { background: rgba(255,107,107,.1); color: var(--red); margin-top: 6px; }
+    .spinner { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--surface-3); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+    .uid { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); color: var(--text-2); }
+    .uid code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); text-align: left; }
+
+    .auth { min-height: 100vh; min-height: 100dvh; max-width: 400px; margin: 0 auto; padding: 24px 22px calc(24px + var(--safe-b)); display: flex; flex-direction: column; justify-content: center; }
+    .auth h1 { margin: 20px 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+    .auth p { margin: 0; }
+    .auth-form { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+    .field { width: 100%; padding: 15px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; transition: border-color .15s; }
+    .field:focus { border-color: var(--blue); }
+    .form-msg { margin: 2px 4px; font-size: 14px; }
+    .form-msg.error { color: var(--red); }
+    .form-msg.ok { color: var(--green); }
+    .auth .link { display: block; margin: 20px auto 0; }
+    .splash { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; }
+    .splash svg { animation: pulse 1.4s ease-in-out infinite; }
+    .sk { border-radius: var(--radius); background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+
+    @keyframes sheetIn { from { transform: translateY(100%); } }
+    @keyframes fade { from { opacity: 0; } }
+    @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { opacity: .55; transform: scale(.94); } }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    @media (hover: hover) {
+      button.row:hover, a.row:hover, .up:hover { background: var(--surface-2); }
+      .sheet button.row:hover, .sheet a.row:hover { background: var(--surface-3); }
+      .class-card:hover { border-color: rgba(255,255,255,.14); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    /* ===== Fill these in (Firebase console → Project settings) ===== */
+    const FIREBASE_CONFIG = {
+      apiKey: "PASTE_API_KEY",
+      authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+      projectId: "PASTE_PROJECT_ID",
+      storageBucket: "PASTE_PROJECT_ID.appspot.com",
+      messagingSenderId: "PASTE_SENDER_ID",
+      appId: "PASTE_APP_ID",
+    };
+    const VAPID_KEY = "PASTE_WEB_PUSH_KEY"; // Cloud Messaging → Web Push certificates
+    /* =============================================================== */
+
+    const PLUSPORTALS_URL = "https://www.plusportals.com/VillageSchool";
+    const NEW_FOR_MS = 3 * 24 * 3600e3;  // how long items keep their "New" badge
+    const STALE_AFTER_MS = 26 * 3600e3;  // warn if the scraper hasn't saved data in this long
+    const DEVICE_KEY = "grades.pushDevice";
+
+    const configured = !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
+    if (configured) firebase.initializeApp(FIREBASE_CONFIG);
+    const auth = configured ? firebase.auth() : null;
+    const db = configured ? firebase.firestore() : null;
+
+    /* ---------- Helpers ---------- */
+    const store = {
+      get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+      set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+      del: k => { try { localStorage.removeItem(k); } catch {} },
+    };
+    const isTrue = v => String(v).toLowerCase() === "true";
+    const num = v => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = parseFloat(String(v).replace("%", ""));
+      return Number.isFinite(n) ? n : null;
+    };
+    const fmt = v => (v == null ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(1));
+    const clamp = v => Math.max(0, Math.min(100, v || 0));
+    const ts = d => (d ? d.getTime() : 0);
+    const tsLast = d => (d ? d.getTime() : Number.MAX_SAFE_INTEGER);
+    const isNewItem = it => typeof it?.firstSeen === "number" && it.firstSeen > 0 && Date.now() - it.firstSeen < NEW_FOR_MS;
+    const titleCase = s => String(s).toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+
+    // Teacher-entered text can contain HTML; keep only the plain text
+    function clean(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const text = new DOMParser().parseFromString(String(value), "text/html").body.textContent || "";
+      return text.replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+
+    // PlusPortals dates are calendar days; read them without timezone shifts
+    function parseDay(v) {
+      if (v === null || v === undefined || v === "") return null;
+      if (typeof v === "object" && typeof v.toDate === "function") v = v.toDate().getTime();
+      const s = String(v);
+      let m = s.match(/\/Date\((-?\d+)/);
+      if (m || typeof v === "number") {
+        const d = new Date(m ? Number(m[1]) : v);
+        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      }
+      m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return new Date(+m[1], m[2] - 1, +m[3]);
+      m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) return new Date(+m[3], m[1] - 1, +m[2]);
+      const d = new Date(s);
+      return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    const startOfToday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+    const daysFromToday = d => Math.round((d - startOfToday()) / 864e5);
+    const shortDate = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+    function dueLabel(d) {
+      if (!d) return "No due date";
+      const n = daysFromToday(d);
+      if (n === 0) return "Due today";
+      if (n === 1) return "Due tomorrow";
+      if (n === -1) return "Was due yesterday";
+      if (n < 0) return `Was due ${shortDate(d)}`;
+      if (n < 7) return `Due ${d.toLocaleDateString(undefined, { weekday: "long" })}`;
+      return `Due ${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`;
+    }
+    function dueTone(d) {
+      if (!d) return "";
+      const n = daysFromToday(d);
+      return n <= 0 ? "warn" : n === 1 ? "soon" : "";
+    }
+    const BUCKETS = ["Past", "Today", "Tomorrow", "This week", "Later", "No due date"];
+    function bucket(d) {
+      if (!d) return "No due date";
+      const n = daysFromToday(d);
+      if (n < 0) return "Past";
+      if (n === 0) return "Today";
+      if (n === 1) return "Tomorrow";
+      if (n < 7) return "This week";
+      return "Later";
+    }
+    function tone(pct) {
+      if (pct == null) return "var(--text-2)";
+      if (pct >= 90) return "var(--green)";
+      if (pct >= 80) return "var(--blue)";
+      if (pct >= 70) return "var(--yellow)";
+      return "var(--red)";
+    }
+    function relTime(date) {
+      if (!date) return "never";
+      const s = (Date.now() - date.getTime()) / 1000;
+      if (s < 60) return "just now";
+      if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+      const days = Math.floor(s / 86400);
+      return days === 1 ? "yesterday" : `${days} days ago`;
+    }
+
+    /* ---------- Data model ---------- */
+    function buildModel(data) {
+      const classes = (data.classes || []).map(c => {
+        const name = clean(c.name) || "Class";
+        const assignments = (c.assignments || []).map(a => {
+          const score = num(a.Score);
+          const possible = num(a.PossiblePoints);
+          const scoreText = a.Score === null || a.Score === undefined || String(a.Score).trim() === "" ? null : String(a.Score).trim();
+          return {
+            title: clean(a.Description) || clean(a.ShortName) || "Assignment",
+            category: clean(a.Category),
+            date: parseDay(a.AssignmentDate) || parseDay(a.DueDate),
+            scoreText,
+            possible,
+            pct: scoreText != null && score != null && possible ? (score / possible) * 100 : null,
+            note: clean(a.Note),
+            isNew: isNewItem(a),
+            firstSeen: a.firstSeen || 0,
+            className: name,
+            sectionId: c.sectionId,
+          };
+        }).sort((x, y) => ts(y.date) - ts(x.date));
+        const graded = assignments.filter(a => a.scoreText != null);
+        let avg = num(c.average);
+        if (avg === 0 && graded.length === 0) avg = null; // no grades yet, not a real zero
+        return {
+          sectionId: c.sectionId, name, avg, assignments, graded,
+          teacher: clean(c.teacher), teacherEmail: c.teacherEmail || "", grade: clean(c.grade),
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+
+      const up = data.upcoming || {};
+      const upcoming = (up.items || []).map((u, i) => ({
+        key: `${u.AssignmentID || ""}-${u.LessonActivityID || ""}-${u.DiscussionTopicID || ""}-${i}`,
+        title: clean(u.Title) || "Untitled",
+        description: clean(u.Description),
+        className: clean(u.CourseName) || clean(u.Class),
+        type: clean(u.Type),
+        due: parseDay(u.DueDate),
+        done: isTrue(u.IsCompleted),
+        isNew: isNewItem(u),
+        firstSeen: u.firstSeen || 0,
+      })).sort((a, b) => tsLast(a.due) - tsLast(b.due));
+
+      const allGraded = classes.flatMap(c => c.graded);
+      const fresh = [
+        ...allGraded.filter(a => a.isNew).map(item => ({ kind: "grade", item })),
+        ...upcoming.filter(u => u.isNew).map(item => ({ kind: "assignment", item })),
+      ].sort((a, b) => b.item.firstSeen - a.item.firstSeen);
+      const avgs = classes.map(c => c.avg).filter(v => v != null);
+      const mp = data.markingPeriod;
+
+      return {
+        classes, upcoming, fresh,
+        pending: upcoming.filter(u => !u.done),
+        recent: [...allGraded].sort((a, b) => ts(b.date) - ts(a.date)).slice(0, 6),
+        gradedCount: allGraded.length,
+        overall: avgs.length ? avgs.reduce((s, v) => s + v, 0) / avgs.length : null,
+        pastDue: num(up.pastDueCount),
+        updated: data.lastUpdated && data.lastUpdated.toDate ? data.lastUpdated.toDate() : null,
+        mpLabel: mp ? titleCase(mp.description || `${mp.name} marking period`) : "",
+      };
+    }
+
+    /* ---------- Push notifications ---------- */
+    async function sha256(text) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+    }
+
+    async function registerDevice(uid) {
+      // Registered relative to this page so it works under /personalApi/ on GitHub Pages
+      const swUrl = `firebase-messaging-sw.js?config=${encodeURIComponent(JSON.stringify(FIREBASE_CONFIG))}`;
+      await navigator.serviceWorker.register(swUrl);
+      const registration = await navigator.serviceWorker.ready;
+      const token = await firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+      if (!token) throw new Error("No push token returned");
+      const id = await sha256(token);
+      const old = store.get(DEVICE_KEY);
+      if (old && old !== id) await db.doc(`users/${uid}/devices/${old}`).delete().catch(() => {});
+      await db.doc(`users/${uid}/devices/${id}`).set({
+        token,
+        userAgent: navigator.userAgent.slice(0, 200),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      store.set(DEVICE_KEY, id);
+    }
+
+    const PUSH_TEXT = {
+      checking: "Checking this browser…",
+      unsupported: "This browser can't receive web notifications. Chrome on Android works best.",
+      "needs-key": "Add your Web Push key (VAPID_KEY) near the top of index.html.",
+      blocked: "Blocked. Allow notifications for this site in your browser's site settings.",
+      off: "Get a notification when a teacher posts a new assignment or grade.",
+      on: "On for this device.",
+      busy: "Working…",
+    };
+
+    function usePush(user, notify) {
+      const [status, setStatus] = useState("checking");
+
+      useEffect(() => {
+        let alive = true;
+        (async () => {
+          let ok = "Notification" in window && "serviceWorker" in navigator && typeof firebase.messaging?.isSupported === "function";
+          if (ok) ok = await Promise.resolve(firebase.messaging.isSupported()).catch(() => false);
+          if (!alive) return;
+          if (!ok) return setStatus("unsupported");
+          if (VAPID_KEY.startsWith("PASTE")) return setStatus("needs-key");
+          firebase.messaging().onMessage(p => {
+            const n = p.notification || {};
+            notify([n.title, n.body].filter(Boolean).join(" — ") || "New update");
+          });
+          if (Notification.permission === "denied") return setStatus("blocked");
+          if (Notification.permission === "granted" && store.get(DEVICE_KEY)) {
+            setStatus("on");
+            registerDevice(user.uid).catch(err => console.warn("Push token refresh failed", err));
+          } else {
+            setStatus("off");
+          }
+        })();
+        return () => { alive = false; };
+      }, [user.uid]);
+
+      const enable = async () => {
+        setStatus("busy");
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") { setStatus(permission === "denied" ? "blocked" : "off"); return; }
+          await registerDevice(user.uid);
+          setStatus("on");
+          notify("Notifications are on for this device");
+        } catch (err) {
+          console.error(err);
+          setStatus("off");
+          notify(`Couldn't turn on notifications: ${err.message || err}`);
+        }
+      };
+
+      const disable = async () => {
+        setStatus("busy");
+        try {
+          const id = store.get(DEVICE_KEY);
+          if (id) await db.doc(`users/${user.uid}/devices/${id}`).delete();
+          const reg = await navigator.serviceWorker.getRegistration();
+          const sub = reg && (await reg.pushManager.getSubscription());
+          if (sub) await sub.unsubscribe();
+          store.del(DEVICE_KEY);
+          setStatus("off");
+          notify("Notifications are off for this device");
+        } catch (err) {
+          console.error(err);
+          setStatus("on");
+          notify("Couldn't turn off notifications");
+        }
+      };
+
+      return { status, enable, disable };
+    }
+
+    /* ---------- Small hooks ---------- */
+    function useToast() {
+      const [toast, setToast] = useState(null);
+      const timer = useRef();
+      const show = useCallback(text => {
+        clearTimeout(timer.current);
+        setToast({ text, id: Date.now() });
+        timer.current = setTimeout(() => setToast(null), 3500);
+      }, []);
+      return [toast, show];
+    }
+
+    function useMinuteTick() {
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(id);
+      }, []);
+    }
+
+    function useCompact(ref) {
+      const [compact, setCompact] = useState(false);
+      useEffect(() => {
+        const el = ref.current;
+        if (!el || !("IntersectionObserver" in window)) return;
+        const io = new IntersectionObserver(([e]) => setCompact(!e.isIntersecting), { rootMargin: "-56px 0px 0px 0px" });
+        io.observe(el);
+        return () => io.disconnect();
+      }, []);
+      return compact;
+    }
+
+    /* ---------- Icons ---------- */
+    const ic = (paths, size = 22) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
+    );
+    const I = {
+      home: ic(<><path d="M3 10.5 12 3l9 7.5" /><path d="M5.5 9v11a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9" /></>),
+      book: ic(<><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z" /><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3" /></>),
+      calendar: ic(<><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>),
+      settings: ic(<><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></>),
+      bell: ic(<><path d="M6 9a6 6 0 1 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15.5 6 9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></>),
+      copy: ic(<><rect x="9" y="9" width="11.5" height="11.5" rx="2.5" /><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5" /></>, 18),
+      external: ic(<><path d="M14 4h6v6M20 4l-9 9" /><path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" /></>, 18),
+      mail: ic(<><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" /></>, 18),
+      check: ic(<path d="M5 12.5 10 17l9-10" />, 13),
+    };
+
+    function AppIcon({ size = 56 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="appicon-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#4F8CFF" /><stop offset="1" stopColor="#8B5CF6" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="16" fill="url(#appicon-g)" />
+          <rect x="14" y="34" width="9" height="16" rx="3" fill="#fff" fillOpacity=".55" />
+          <rect x="27.5" y="26" width="9" height="24" rx="3" fill="#fff" fillOpacity=".78" />
+          <rect x="41" y="16" width="9" height="34" rx="3" fill="#fff" />
+        </svg>
+      );
+    }
+
+    /* ---------- Building blocks ---------- */
+    const IconButton = ({ label, onClick, children }) => (
+      <button className="icon-btn" aria-label={label} onClick={onClick}>{children}</button>
+    );
+
+    function Ring({ value, size = 96 }) {
+      const r = (size - 12) / 2;
+      const c = 2 * Math.PI * r;
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={`Average ${fmt(value)}`}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" style={{ stroke: "var(--surface-3)" }} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="10" strokeLinecap="round"
+            strokeDasharray={c} strokeDashoffset={c * (1 - clamp(value) / 100)}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            style={{ stroke: tone(value), transition: "stroke-dashoffset .6s ease" }} />
+          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fontSize="24" fontWeight="700" style={{ fill: "var(--text)" }}>
+            {fmt(value)}
+          </text>
+        </svg>
+      );
+    }
+
+    function Stat({ value, label, color, onClick }) {
+      const Tag = onClick ? "button" : "div";
+      return (
+        <Tag className="stat" onClick={onClick}>
+          <b style={color ? { color } : undefined}>{value}</b>
+          <span>{label}</span>
+        </Tag>
+      );
+    }
+
+    function Section({ title, note, action, children }) {
+      return (
+        <section className="section">
+          <div className="section-head">
+            <h2>{title}{note && <span> · {note}</span>}</h2>
+            {action && <button className="link" onClick={action.onClick}>{action.label}</button>}
+          </div>
+          {children}
+        </section>
+      );
+    }
+
+    function GradeRow({ a, showClass, onClick }) {
+      const Tag = onClick ? "button" : "div";
+      const meta = [showClass && a.className, a.category, a.date && shortDate(a.date)].filter(Boolean).join(" · ");
+      return (
+        <Tag className="row" onClick={onClick}>
+          <div className="row-main">
+            <div className="row-title">{a.isNew && <span className="dot-new" />}{a.title}</div>
+            {meta && <div className="row-sub">{meta}</div>}
+            {a.note && <div className="note">{a.note}</div>}
+          </div>
+          <div className="score">
+            {a.scoreText != null ? (
+              <b style={{ color: tone(a.pct) }}>
+                {a.scoreText}{a.possible != null && <span className="of">/{fmt(a.possible)}</span>}
+              </b>
+            ) : <b className="muted">—</b>}
+            <small>{a.pct != null ? `${fmt(a.pct)}%` : a.scoreText == null ? "Not graded" : ""}</small>
+          </div>
+        </Tag>
+      );
+    }
+
+    function UpcomingRow({ item }) {
+      const [open, setOpen] = useState(false);
+      const d = item.due;
+      const canOpen = !!item.description;
+      const toggle = () => canOpen && setOpen(o => !o);
+      return (
+        <div className={`up${open ? " open" : ""}${item.done ? " done" : ""}`}
+          role={canOpen ? "button" : undefined} tabIndex={canOpen ? 0 : undefined}
+          aria-expanded={canOpen ? open : undefined}
+          onClick={toggle} onKeyDown={e => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle())}>
+          <div className="up-date">
+            <small>{d ? d.toLocaleDateString(undefined, { month: "short" }) : "—"}</small>
+            <b>{d ? d.getDate() : "?"}</b>
+          </div>
+          <div className="row-main">
+            <div className="row-title">{item.isNew && <span className="dot-new" />}{item.title}</div>
+            {(item.className || item.type) && <div className="row-sub">{[item.className, item.type].filter(Boolean).join(" · ")}</div>}
+            <div className="chips">
+              <span className={`pill ${item.done ? "" : dueTone(d)}`}>{dueLabel(d)}</span>
+              {item.done && <span className="pill ok">{I.check} Done</span>}
+              {canOpen && !open && <span className="pill">Details</span>}
+            </div>
+            {open && <div className="desc">{item.description}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    function ClassCard({ c, onClick }) {
+      const newCount = c.graded.filter(a => a.isNew).length;
+      return (
+        <button className="class-card" onClick={onClick}>
+          <div className="class-top">
+            <div className="row-main">
+              <div className="class-name">{c.name}</div>
+              {c.teacher && <div className="row-sub">{c.teacher}</div>}
+            </div>
+            <div className="class-grade">
+              <div className="class-avg" style={{ color: tone(c.avg) }}>{fmt(c.avg)}</div>
+              {c.grade && <span className="pill">{c.grade}</span>}
+            </div>
+          </div>
+          <div className="bar"><i style={{ width: `${clamp(c.avg)}%`, background: tone(c.avg) }} /></div>
+          <div className="class-meta">
+            <span>{c.graded.length ? `${c.graded.length} ${c.graded.length === 1 ? "score" : "scores"}` : "No scores yet"}</span>
+            {newCount > 0 && <span className="pill new">{newCount} new</span>}
+          </div>
+        </button>
+      );
+    }
+
+    function Sheet({ onClose, children }) {
+      const [closing, setClosing] = useState(false);
+      const [drag, setDrag] = useState(0);
+      const startY = useRef(null);
+      const close = () => { setClosing(true); setTimeout(onClose, 220); };
+      const closeRef = useRef(close);
+      closeRef.current = close;
+
+      useEffect(() => {
+        const onKey = e => e.key === "Escape" && closeRef.current();
+        window.addEventListener("keydown", onKey);
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+          window.removeEventListener("keydown", onKey);
+          document.body.style.overflow = prevOverflow;
+        };
+      }, []);
+
+      const style = closing
+        ? { transform: "translateY(100%)" }
+        : drag ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined;
+
+      return (
+        <div className={`sheet-wrap${closing ? " closing" : ""}`}>
+          <div className="scrim" onClick={close} />
+          <div className="sheet" role="dialog" aria-modal="true" style={style}>
+            <div className="sheet-grip"
+              onTouchStart={e => { startY.current = e.touches[0].clientY; }}
+              onTouchMove={e => { if (startY.current != null) setDrag(Math.max(0, e.touches[0].clientY - startY.current)); }}
+              onTouchEnd={() => { startY.current = null; if (drag > 100) close(); else setDrag(0); }}>
+              <span />
+            </div>
+            <div className="sheet-body">{children}</div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ---------- Sheets ---------- */
+    function ClassSheet({ cls, onClose }) {
+      return (
+        <Sheet onClose={onClose}>
+          <div className="sheet-head">
+            <div style={{ minWidth: 0 }}>
+              <h3>{cls.name}</h3>
+              {cls.teacher && <p>{cls.teacher}</p>}
+            </div>
+            <div className="big-avg" style={{ color: tone(cls.avg) }}>
+              {fmt(cls.avg)}
+              {cls.grade && <span className="pill">{cls.grade}</span>}
+            </div>
+          </div>
+          {cls.teacherEmail && <a className="link-btn" href={`mailto:${cls.teacherEmail}`}>{I.mail} Email teacher</a>}
+          <div className="section-head"><h2>Scores · {cls.graded.length}</h2></div>
+          {cls.assignments.length
+            ? <div className="list">{cls.assignments.map((a, i) => <GradeRow key={i} a={a} />)}</div>
+            : <div className="card empty">No scores yet this marking period.</div>}
+        </Sheet>
+      );
+    }
+
+    function SettingsSheet({ user, push, model, onClose, onCopy }) {
+      const st = push.status;
+      return (
+        <Sheet onClose={onClose}>
+          <h3 className="sheet-title">Settings</h3>
+
+          <div className="section-head"><h2>Notifications</h2></div>
+          <div className="list">
+            <div className="row">
+              <span className="row-icon">{I.bell}</span>
+              <div className="row-main">
+                <div className="row-title">New assignments & grades</div>
+                <div className="row-sub wrap">{PUSH_TEXT[st]}</div>
+              </div>
+              {st === "off" && <button className="btn small" onClick={push.enable}>Turn on</button>}
+              {st === "on" && <button className="btn small ghost" onClick={push.disable}>Turn off</button>}
+              {st === "busy" && <span className="spinner" />}
+            </div>
+          </div>
+          <p className="caption" style={{ marginTop: 0 }}>Sent each time the scraper runs on GitHub.</p>
+
+          <div className="section-head"><h2>Account</h2></div>
+          <div className="list">
+            <div className="row">
+              <div className="row-main">
+                <div className="row-title">{user.email}</div>
+                <div className="row-sub">Signed in</div>
+              </div>
+            </div>
+            <button className="row" onClick={() => onCopy(user.uid)}>
+              <div className="row-main">
+                <div className="row-title mono">{user.uid}</div>
+                <div className="row-sub">Your UID · DASHBOARD_UID in scraper.js must match</div>
+              </div>
+              {I.copy}
+            </button>
+          </div>
+
+          <div className="section-head"><h2>Data</h2></div>
+          <div className="list">
+            <div className="row">
+              <div className="row-main"><div className="row-title">Last updated</div></div>
+              <span className="muted">{model?.updated ? model.updated.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "—"}</span>
+            </div>
+            <a className="row" href={PLUSPORTALS_URL} target="_blank" rel="noopener noreferrer">
+              <div className="row-main"><div className="row-title">Open PlusPortals</div></div>
+              {I.external}
+            </a>
+          </div>
+
+          <button className="btn danger" onClick={() => auth.signOut()}>Sign out</button>
+        </Sheet>
+      );
+    }
+
+    /* ---------- Views ---------- */
+    function HomeView({ model, goTo, openClass }) {
+      const soon = model.pending.slice(0, 4);
+      const stale = model.updated && Date.now() - model.updated.getTime() > STALE_AFTER_MS;
+      return (
+        <>
+          {stale && <div className="card warn-card">Last update was {relTime(model.updated)}. Check the scraper's runs in GitHub Actions.</div>}
+
+          <div className="card summary">
+            <div className="ring-wrap">
+              <Ring value={model.overall} />
+              <span>Average</span>
+            </div>
+            <div className="stats">
+              <Stat value={model.classes.length} label="Classes" onClick={() => goTo("classes")} />
+              <Stat value={model.gradedCount} label="Scores" />
+              <Stat value={model.pending.length} label="To do" onClick={() => goTo("upcoming")} />
+              <Stat value={model.pastDue ?? "—"} label="Past due" color={model.pastDue ? "var(--red)" : undefined} />
+            </div>
+          </div>
+
+          {model.fresh.length > 0 && (
+            <Section title="New" note="last 3 days">
+              <div className="list">
+                {model.fresh.map((f, i) => f.kind === "grade"
+                  ? <GradeRow key={`g${i}`} a={f.item} showClass onClick={() => openClass(f.item.sectionId)} />
+                  : <UpcomingRow key={`u${i}`} item={f.item} />)}
+              </div>
+            </Section>
+          )}
+
+          <Section title="Due soon" action={model.pending.length > soon.length ? { label: "See all", onClick: () => goTo("upcoming") } : null}>
+            {soon.length
+              ? <div className="list">{soon.map(u => <UpcomingRow key={u.key} item={u} />)}</div>
+              : <div className="card empty">Nothing due right now.</div>}
+          </Section>
+
+          <Section title="Recent scores">
+            {model.recent.length
+              ? <div className="list">{model.recent.map((a, i) => <GradeRow key={i} a={a} showClass onClick={() => openClass(a.sectionId)} />)}</div>
+              : <div className="card empty">No scores yet this marking period.</div>}
+          </Section>
+        </>
+      );
+    }
+
+    function ClassesView({ model, openClass }) {
+      if (!model.classes.length) return <div className="card empty">No classes found.</div>;
+      return model.classes.map(c => <ClassCard key={c.sectionId} c={c} onClick={() => openClass(c.sectionId)} />);
+    }
+
+    function UpcomingView({ model }) {
+      const [filter, setFilter] = useState("todo");
+      const items = filter === "todo" ? model.pending : model.upcoming;
+      const groups = {};
+      for (const u of items) (groups[bucket(u.due)] ||= []).push(u);
+      return (
+        <>
+          <div className="toolbar">
+            <div className="seg">
+              <button className={filter === "todo" ? "on" : ""} onClick={() => setFilter("todo")}>To do</button>
+              <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
+            </div>
+            {model.pastDue ? <span className="pill warn">{model.pastDue} past due</span> : null}
+          </div>
+          {!items.length && <div className="card empty">{filter === "todo" ? "You're all caught up." : "No upcoming coursework posted."}</div>}
+          {BUCKETS.filter(k => groups[k]).map(k => (
+            <Section key={k} title={k}>
+              <div className="list">{groups[k].map(u => <UpcomingRow key={u.key} item={u} />)}</div>
+            </Section>
+          ))}
+          {model.pastDue ? <p className="caption">PlusPortals only reports the past-due count; open it there to see the list.</p> : null}
+        </>
+      );
+    }
+
+    const Skeleton = () => (
+      <>
+        <div className="sk" style={{ height: 136 }} />
+        <div className="sk" style={{ height: 76 }} />
+        <div className="sk" style={{ height: 76 }} />
+        <div className="sk" style={{ height: 200 }} />
+      </>
+    );
+
+    /* ---------- Screens ---------- */
+    function Dashboard({ user }) {
+      const [state, setState] = useState({ status: "loading", data: null, error: null });
+      const [tab, setTab] = useState("home");
+      const [openSection, setOpenSection] = useState(null);
+      const [settingsOpen, setSettingsOpen] = useState(false);
+      const [toast, showToast] = useToast();
+      const push = usePush(user, showToast);
+      const titleRef = useRef(null);
+      const compact = useCompact(titleRef);
+      useMinuteTick();
+
+      useEffect(() => db.doc(`users/${user.uid}/grades/current`).onSnapshot(
+        snap => setState({ status: snap.exists ? "ready" : "empty", data: snap.exists ? snap.data() : null, error: null }),
+        error => setState({ status: "error", data: null, error })
+      ), [user.uid]);
+
+      useEffect(() => { window.scrollTo(0, 0); }, [tab]);
+
+      const model = useMemo(() => (state.data ? buildModel(state.data) : null), [state.data]);
+      const openClass = model && openSection != null ? model.classes.find(c => c.sectionId === openSection) : null;
+
+      const copy = async text => {
+        try { await navigator.clipboard.writeText(text); showToast("Copied"); }
+        catch { showToast("Couldn't copy. Long-press to select it instead."); }
+      };
+
+      const titles = { home: "Grades", classes: "Classes", upcoming: "Upcoming" };
+      let subtitle = state.status === "loading" ? "Loading…" : "";
+      if (model) {
+        if (tab === "home") subtitle = [model.mpLabel, model.updated && `Updated ${relTime(model.updated)}`].filter(Boolean).join(" · ");
+        if (tab === "classes") subtitle = [`${model.classes.length} classes`, model.mpLabel].filter(Boolean).join(" · ");
+        if (tab === "upcoming") subtitle = [`${model.pending.length} to do`, model.pastDue ? `${model.pastDue} past due` : ""].filter(Boolean).join(" · ");
+      }
+      const dots = {
+        classes: !!model?.fresh.some(f => f.kind === "grade"),
+        upcoming: !!model?.fresh.some(f => f.kind === "assignment"),
+      };
+      const tabs = [["home", "Home", I.home], ["classes", "Classes", I.book], ["upcoming", "Upcoming", I.calendar]];
+
+      return (
+        <div className="app">
+          <div className={`topbar${compact ? " show" : ""}`}>
+            <div className="topbar-inner">
+              <span>{titles[tab]}</span>
+              <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>{I.settings}</IconButton>
+            </div>
+          </div>
+
+          <header className="hero">
+            <div className="hero-actions">
+              <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>{I.settings}</IconButton>
+            </div>
+            <h1 ref={titleRef}>{titles[tab]}</h1>
+            {subtitle && <p>{subtitle}</p>}
+          </header>
+
+          <main className="content">
+            {state.status === "loading" && <Skeleton />}
+            {state.status === "empty" && (
+              <div className="card notice">
+                <p><b>No grades for this account yet.</b> Set <code>DASHBOARD_UID</code> in scraper.js to this UID, then run the workflow:</p>
+                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code>{I.copy}</button>
+              </div>
+            )}
+            {state.status === "error" && (
+              <div className="card notice">
+                <p><b>Can't read your grades.</b> {state.error?.code === "permission-denied"
+                  ? "Make sure the Firestore rules are published and DASHBOARD_UID matches this UID:"
+                  : state.error?.message}</p>
+                <button className="uid" onClick={() => copy(user.uid)}><code>{user.uid}</code>{I.copy}</button>
+              </div>
+            )}
+            {model && tab === "home" && <HomeView model={model} goTo={setTab} openClass={setOpenSection} />}
+            {model && tab === "classes" && <ClassesView model={model} openClass={setOpenSection} />}
+            {model && tab === "upcoming" && <UpcomingView model={model} />}
+          </main>
+
+          <nav className="tabbar">
+            <div className="tabbar-inner">
+              {tabs.map(([id, label, icon]) => (
+                <button key={id} className={`tab${tab === id ? " active" : ""}`} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}>
+                  <span className="ico">{icon}{dots[id] && <i className="tab-dot" />}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {openClass && <ClassSheet cls={openClass} onClose={() => setOpenSection(null)} />}
+          {settingsOpen && <SettingsSheet user={user} push={push} model={model} onClose={() => setSettingsOpen(false)} onCopy={copy} />}
+          {toast && <div className="toast" key={toast.id} role="status">{toast.text}</div>}
+        </div>
+      );
+    }
+
+    function authError(err) {
+      const code = err && err.code;
+      if (["auth/invalid-credential", "auth/invalid-login-credentials", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(code)) return "Wrong email or password.";
+      if (code === "auth/too-many-requests") return "Too many attempts. Try again in a few minutes.";
+      if (code === "auth/network-request-failed") return "No connection. Check your internet and try again.";
+      if (code === "auth/operation-not-allowed") return "Email/Password sign-in is turned off in Firebase Authentication.";
+      return (err && err.message) || "Something went wrong.";
+    }
+
+    function SignIn() {
+      const [email, setEmail] = useState("");
+      const [password, setPassword] = useState("");
+      const [busy, setBusy] = useState(false);
+      const [msg, setMsg] = useState(null);
+
+      const submit = async e => {
+        e.preventDefault();
+        setBusy(true);
+        setMsg(null);
+        try { await auth.signInWithEmailAndPassword(email.trim(), password); }
+        catch (err) { setMsg({ error: true, text: authError(err) }); setBusy(false); }
+      };
+      const reset = async () => {
+        if (!email.trim()) return setMsg({ error: true, text: "Enter your email first." });
+        try { await auth.sendPasswordResetEmail(email.trim()); setMsg({ text: "Password reset email sent." }); }
+        catch (err) { setMsg({ error: true, text: authError(err) }); }
+      };
+
+      return (
+        <div className="auth">
+          <AppIcon size={64} />
+          <h1>Grades</h1>
+          <p className="muted">Sign in with your dashboard account.</p>
+          <form className="auth-form" onSubmit={submit}>
+            <input className="field" type="email" inputMode="email" autoComplete="username" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input className="field" type="password" autoComplete="current-password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+            {msg && <p className={`form-msg ${msg.error ? "error" : "ok"}`}>{msg.text}</p>}
+            <button className="btn" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+          </form>
+          <button className="link" type="button" onClick={reset}>Forgot password?</button>
+        </div>
+      );
+    }
+
+    const Splash = () => <div className="splash"><AppIcon size={56} /></div>;
+
+    const SetupNotice = () => (
+      <div className="auth">
+        <AppIcon size={64} />
+        <h1>Almost there</h1>
+        <p className="muted">Paste your Firebase web config into <code>FIREBASE_CONFIG</code> near the top of index.html, then reload.</p>
+      </div>
+    );
+
+    function App() {
+      const [user, setUser] = useState(undefined);
+      useEffect(() => auth.onAuthStateChanged(u => setUser(u || null)), []);
+      if (user === undefined) return <Splash />;
+      return user ? <Dashboard user={user} /> : <SignIn />;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(configured ? <App /> : <SetupNotice />);
+  </script>
+</body>
+</html>
