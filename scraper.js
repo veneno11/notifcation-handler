@@ -8,8 +8,9 @@ const db = admin.firestore();
 // ===== Config =====
 const BASE = 'https://www.plusportals.com';
 const LOGIN_URL = `${BASE}/VillageSchool`;
+const STUDENT_ID = 12136;
 const MARKING_PERIOD_ID = 132;      // fallback only; the current term is detected automatically
-const SCORE_ID_FIELD = 'sectionId'; // switch to 'courseId' if 9333 turns out to be a CourseId
+const SCORE_ID_FIELD = 'sectionId'; // confirmed: section 9333 matched your capture
 const DASHBOARD_UID = '';           // Firebase Auth UID; empty = old users/<email prefix> path
 // ==================
 
@@ -61,7 +62,13 @@ function extractToken(html) {
 }
 
 const isTrue = v => String(v).toLowerCase() === 'true';
-const rowsOf = d => (Array.isArray(d) ? d : Array.isArray(d?.Data) ? d.Data : []);
+
+// Grid responses come as a bare array, { Data: [...] }, or { dataResult: { Data: [...] } }
+const rowsOf = d =>
+  Array.isArray(d) ? d
+  : Array.isArray(d?.Data) ? d.Data
+  : Array.isArray(d?.dataResult?.Data) ? d.dataResult.Data
+  : [];
 
 function expectJson(res, label) {
   const type = res.headers['content-type'] || '';
@@ -69,6 +76,18 @@ function expectJson(res, label) {
     throw new Error(`${label}: status ${res.status}, content-type ${type || 'none'} (expected JSON)`);
   }
   return res.data;
+}
+
+// Firestore rejects arrays directly inside arrays; wrap any it finds
+function firestoreSafe(v, inArray = false) {
+  if (Array.isArray(v)) {
+    const arr = v.map(x => firestoreSafe(x, true));
+    return inArray ? { items: arr } : arr;
+  }
+  if (v && typeof v === 'object') {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, firestoreSafe(x)]));
+  }
+  return v === undefined ? null : v;
 }
 
 // JSON/grid requests (need the anti-forgery header)
@@ -156,6 +175,33 @@ async function login() {
   return { apiToken, referer: home.config.url };
 }
 
+// ---------- Upcoming coursework ----------
+
+async function fetchUpcoming(session) {
+  console.log('Step 3: upcoming coursework');
+  try {
+    const body = new URLSearchParams({
+      sort: '', page: '1', pageSize: '50', group: '', filter: '',
+      studentId: String(STUDENT_ID), sectionId: '0', courseworkRange: '1',
+      courseworkType: 'All Types', token: '',
+    });
+    const res = expectJson(await api(session, {
+      path: '/ParentStudentDetails/GetCourseworkDetailsByStudent',
+      data: body.toString(),
+    }), 'GetCourseworkDetailsByStudent');
+
+    const items = rowsOf(res);
+    const total = res?.dataResult?.Total ?? items.length;
+    console.log(`  ${items.length} items (total ${total}), past due: ${res?.pastDueCount ?? 'n/a'}`);
+    if (items.length) console.log(`  item fields: ${Object.keys(items[0]).join(', ')}`);
+
+    return { items, total, pastDueCount: res?.pastDueCount ?? null };
+  } catch (e) {
+    console.log(`  failed — ${e.message}`);
+    return { items: [], total: 0, pastDueCount: null };
+  }
+}
+
 // ---------- Grades ----------
 
 async function fetchAssignments(session, id) {
@@ -175,7 +221,7 @@ async function fetchAssignments(session, id) {
 }
 
 async function fetchGrades(session) {
-  console.log('Step 3: marking periods');
+  console.log('Step 4: marking periods');
   const periods = rowsOf(expectJson(
     await api(session, { method: 'get', path: '/ParentStudentDetails/GetMarkingPeriod' }),
     'GetMarkingPeriod'
@@ -185,7 +231,7 @@ async function fetchGrades(session) {
   if (!current) throw new Error('Could not determine the current marking period.');
   console.log(`  ${periods.length} periods, current: ${current.MarkingPeriodName} (${current.MarkingPeriodId})`);
 
-  console.log('Step 4: class grades');
+  console.log('Step 5: class grades');
   const rows = rowsOf(expectJson(await api(session, {
     path: `/ParentStudentDetails/ShowGridProgressInfo?markingPeriodId=${current.MarkingPeriodId}`,
     data: 'sort=&group=&filter=',
@@ -194,7 +240,6 @@ async function fetchGrades(session) {
   const classes = rows
     .filter(r => !isTrue(r.IsWithdrawnCourse))
     .map(r => ({
-      courseId: r.CourseId ?? null,
       sectionId: r.SectionId ?? null,
       name: r.CourseName ?? null,
       average: r.Average ?? null,
@@ -205,14 +250,14 @@ async function fetchGrades(session) {
   console.log(`  ${classes.length} active classes (${rows.length - classes.length} withdrawn skipped)`);
   if (!classes.length) throw new Error('No classes returned for the current marking period.');
 
-  console.log('Step 5: assignment scores');
+  console.log('Step 6: assignment scores');
   let loggedFields = false;
   for (const [i, cls] of classes.entries()) {
-    const label = `class ${i + 1} (section ${cls.sectionId}, course ${cls.courseId})`;
+    const label = `class ${i + 1} (section ${cls.sectionId})`;
     try {
-      const { rows: scores, detailsKb, detailsTableRows } = await fetchAssignments(session, cls[SCORE_ID_FIELD]);
+      const { rows: scores } = await fetchAssignments(session, cls[SCORE_ID_FIELD]);
       cls.assignments = scores;
-      console.log(`  ${label}: ${scores.length} scores | details page ${detailsKb} KB, ${detailsTableRows} <tr>`);
+      console.log(`  ${label}: ${scores.length} scores`);
       if (scores.length && !loggedFields) {
         console.log(`  score fields: ${Object.keys(scores[0]).join(', ')}`);
         loggedFields = true;
@@ -244,13 +289,14 @@ async function fetchGrades(session) {
 async function runScraper() {
   try {
     const session = await login();
+    const upcoming = await fetchUpcoming(session); // before the class loop changes the selected class
     const grades = await fetchGrades(session);
 
-    console.log('Step 6: push to Firestore');
+    console.log('Step 7: push to Firestore');
     const userId = DASHBOARD_UID || process.env.PLUSPORTALS_USER.split('@')[0];
     await db.collection('users').doc(userId).collection('grades').doc('current').set({
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      ...grades,
+      ...firestoreSafe({ ...grades, upcoming }),
     });
     console.log('Successfully updated dashboard data.');
   } catch (error) {
