@@ -1,0 +1,24 @@
+name: InkLit Reminders
+
+on:
+  schedule:
+    - cron: '23 * * * *'   # every hour, at minute 23
+  workflow_dispatch:        # keeps the manual "Run workflow" button
+
+concurrency:
+  group: inklit-reminders
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node inklit-reminders.js
+        env:
+          INKLIT_SERVICE_ACCOUNT: ${{ secrets.INKLIT_SERVICE_ACCOUNT }}
