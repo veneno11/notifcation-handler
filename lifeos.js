@@ -18,6 +18,19 @@ const COURSES = [
   [/filosof|philosoph/, 'Filosofía'],
 ];
 
+// Other ways teachers write each class in titles (lowercase, no accents)
+const COURSE_ALIASES = {
+  'American Lit': ['american literature', 'american lit', 'a. literature', 'a. lit', 'english literature', 'english'],
+  'Spanish Lit': ['lengua y literatura', 'spanish literature', 'spanish lit', 'literatura', 'espanol'],
+  'German': ['aleman', 'german', 'deutsch'],
+  'AP Chemistry': ['ap chemistry', 'ap chem', 'ap quimica', 'chemistry', 'quimica', 'chem'],
+  'AP Economics': ['ap macroeconomics', 'ap microeconomics', 'ap economics', 'ap econ', 'economics', 'economia', 'econ'],
+  'AP Precalculus': ['ap pre-calculus', 'ap precalculus', 'ap precalc', 'pre-calculus', 'precalculus', 'pre calc', 'precalc'],
+  'Computer Science': ['ciencias de la computacion', 'ciencia de la computacion', 'computer science', 'computacion', 'comp sci', 'compsci', 'cs'],
+  'Elaboración de Proyectos': ['elaboracion de proyectos', 'elaboracion de proyecto', 'elaboracion', 'elab pro', 'elabpro'],
+  'Filosofía': ['filosofia', 'philosophy'],
+};
+
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const isTrue = v => String(v).toLowerCase() === 'true';
 const cleanText = s => String(s ?? '')
@@ -65,7 +78,7 @@ function toISODate(v) {
   m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);                  // 2026-11-05
   if (m) return ymd(+m[1], +m[2], +m[3]);
 
-  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);      // 11/05/2026 (month first, like PlusPortals)
+  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);      // 11-10-2026 (month first, like PlusPortals)
   if (m) {
     const a = +m[1], b = +m[2];
     return a > 12 && b <= 12 ? ymd(+m[3], b, a) : ymd(+m[3], a, b); // 25/11/2026 can only be day first
@@ -87,27 +100,38 @@ const dueText = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', 
 
 // ---------- Titles ----------
 
-// PlusPortals titles start with the class name; LifeOS already shows it as a tag
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Lowercase, accent-free copy with exactly the same length, so match positions line up with the original
+const keyed = s => String(s).split('').map(ch => (norm(ch) || ' ')[0]).join('');
+const GRADE = '(?:grade\\s*)?11\\s*(?:st|nd|rd|th|vo|mo|°|º)(?:\\s*grade)?|grade\\s*11|11\\s*grade';
+const SEP = '[\\s\\-–—:|·.,;/]';
+
+// Removes the class name and "11th" that PlusPortals titles carry; LifeOS already shows the class as a tag
 function cleanTitle(it) {
   const raw = cleanText(it.Title) || 'Untitled';
-  const names = [it.CourseName, it.Class]
-    .map(cleanText).filter(Boolean)
-    .flatMap(n => [n, n.replace(/\s*\(.*$/, '')]) // with and without the "(code) 0733/01" part
-    .sort((a, b) => b.length - a.length);         // longest match first
+  const course = lifeOsCourse(it.CourseName || it.Class);
+  const names = [it.CourseName, it.Class].map(cleanText).filter(Boolean).flatMap(n => [n, n.replace(/\s*\(.*$/, '')]);
+  const aliases = [...new Set([...names, course, ...(COURSE_ALIASES[course] || [])]
+    .map(a => norm(a).trim()).filter(a => a.length >= 2))]
+    .sort((a, b) => b.length - a.length);
+
+  const CLASS = aliases.length ? `(?:ap\\s+)?(?:${aliases.map(escRe).join('|')})(?:\\s*11)?(?![a-z0-9])` : '(?!)';
+  const TAG = `(?:${CLASS}|(?:${GRADE})(?![a-z0-9]))`;
+  const lead = new RegExp(`^(?:${SEP}|[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]]|${TAG})+`);
+  const trail = new RegExp(`(?:\\s*[\\-–—:|,]\\s*${TAG}(?:\\s*${TAG})*|\\s*[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]])\\s*$`);
+  const stray = new RegExp(`(?:^|\\s)[(\\[]?(?:${GRADE})(?![a-z0-9])[)\\]]?`);
+
   let t = raw;
-  for (const n of names) {
-    if (norm(t).startsWith(norm(n))) { t = t.slice(n.length); break; }
-  }
-  if (t === raw) {
-    // "Chemistry - Lab 3" or "[AP Chem] Lab 3": drop a leading part only if it names the class
-    const m = raw.match(/^\[([^\]]{2,60})\]\s*(.+)$/) || raw.match(/^(.{2,60}?)\s*[:|–—-]\s+(.+)$/);
-    if (m) {
-      const head = norm(m[1]).trim();
-      const namesClass = head.length >= 3 && names.some(n => { const c = norm(n); return c.includes(head) || head.includes(c); });
-      if (namesClass) t = m[2];
-    }
-  }
-  t = t.replace(/^[\s\-–—:|·.,)\]]+/, '').trim();
+  const cut = re => {
+    const m = keyed(t).match(re);
+    if (!m || !m[0]) return false;
+    t = `${t.slice(0, m.index)} ${t.slice(m.index + m[0].length)}`;
+    return true;
+  };
+  cut(lead);
+  for (let i = 0; i < 3 && cut(trail); i++);
+  for (let i = 0; i < 3 && cut(stray); i++);
+  t = t.replace(/\s+/g, ' ').replace(/^[\s\-–—:|·.,;/]+/, '').replace(/[\s\-–—:|,;/]+$/, '').trim();
   return t || raw;
 }
 
@@ -188,7 +212,7 @@ async function syncLifeOS(items) {
       const entry = ledger[key];
 
       if (!entry) {
-        ledger[key] = { at: now, due };
+        ledger[key] = { at: now, due, title };
         if (doneInPP || idx !== undefined) continue;
         const task = {
           id,
@@ -207,13 +231,17 @@ async function syncLifeOS(items) {
 
       if (idx === undefined) continue; // you deleted it in LifeOS: leave it gone
       const task = tasks[idx];
-      // Earlier imports kept the class name in front; fix it unless you renamed the task yourself
-      const oldTitle = cleanText(it.Title) || 'Untitled';
-      if (task.title === oldTitle && title !== oldTitle) { tasks[idx] = { ...tasks[idx], title }; renamed++; }
+
+      // Re-clean titles from earlier imports, unless you renamed the task yourself
+      const rawTitle = cleanText(it.Title) || 'Untitled';
+      const untouched = task.title === rawTitle || task.title === entry.title
+        || (!entry.title && keyed(task.title).includes(keyed(title)));
+      if (task.title !== title && untouched) { tasks[idx] = { ...tasks[idx], title }; renamed++; }
+
       if (doneInPP && !task.completed) { tasks[idx] = { ...tasks[idx], completed: true }; completed++; }
       // Teacher moved the due date and you hadn't changed it yourself
       if (!task.completed && entry.due !== due && task.dueDate === entry.due) { tasks[idx] = { ...tasks[idx], dueDate: due }; moved++; }
-      ledger[key] = { ...entry, due };
+      ledger[key] = { ...entry, due, title: tasks[idx].title === title ? title : (entry.title || null) };
     }
 
     const cutoff = now - 180 * 864e5;
