@@ -100,26 +100,60 @@ const dueText = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', 
 
 // ---------- Titles ----------
 
+const GRADE_LEVEL = '11'; // your grade: change to '12' next school year
+const STOPWORDS = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'of', 'the', 'and', 'ap']);
+
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Lowercase, accent-free copy with exactly the same length, so match positions line up with the original
 const keyed = s => String(s).split('').map(ch => (norm(ch) || ' ')[0]).join('');
-const GRADE = '(?:grade\\s*)?11\\s*(?:st|nd|rd|th|vo|mo|°|º)(?:\\s*grade)?|grade\\s*11|11\\s*grade';
+// "proyectos" -> matches "proy", "proye", … "proyectos" (at least `min` letters)
+const prefixRe = (w, min) => w.length <= min ? escRe(w)
+  : escRe(w.slice(0, min)) + w.slice(min).split('').reduceRight((acc, ch) => `(?:${escRe(ch)}${acc})?`, '');
+
+const GRADE = `(?:grade\\s*)?${GRADE_LEVEL}\\s*(?:st|nd|rd|th|vo|mo|°|º)(?:\\s*grade)?|grade\\s*${GRADE_LEVEL}|${GRADE_LEVEL}\\s*grade`;
 const SEP = '[\\s\\-–—:|·.,;/]';
 
-// Removes the class name and "11th" that PlusPortals titles carry; LifeOS already shows the class as a tag
+// Teacher shorthand built from a class name: "Elab Proy", "Comp Sci", "Chem", "Precalc", "Filo"…
+function abbreviationRe(name) {
+  const words = norm(name).replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(w => w && !STOPWORDS.has(w));
+  if (!words.length || words[0].length < 4) return null;
+  const rest = words.slice(1).filter(w => w.length >= 3)
+    .map(w => `(?:[\\s.]+(?:(?:de|del|la|y)[\\s.]+)?${prefixRe(w, 3)})?`).join('');
+  return prefixRe(words[0], 4) + rest;
+}
+
+// Removes the class name, its shorthand, "11th" and your section ("11.01") from PlusPortals titles
 function cleanTitle(it) {
   const raw = cleanText(it.Title) || 'Untitled';
   const course = lifeOsCourse(it.CourseName || it.Class);
-  const names = [it.CourseName, it.Class].map(cleanText).filter(Boolean).flatMap(n => [n, n.replace(/\s*\(.*$/, '')]);
-  const aliases = [...new Set([...names, course, ...(COURSE_ALIASES[course] || [])]
-    .map(a => norm(a).trim()).filter(a => a.length >= 2))]
-    .sort((a, b) => b.length - a.length);
+  const ppNames = [it.CourseName, it.Class].map(cleanText).filter(Boolean);
+  const names = [...new Set(
+    [...ppNames.flatMap(n => [n, n.replace(/\s*\(.*$/, '')]), course, ...(COURSE_ALIASES[course] || [])]
+      .map(a => norm(a).trim()).filter(a => a.length >= 2)
+  )];
 
-  const CLASS = aliases.length ? `(?:ap\\s+)?(?:${aliases.map(escRe).join('|')})(?:\\s*11)?(?![a-z0-9])` : '(?!)';
-  const TAG = `(?:${CLASS}|(?:${GRADE})(?![a-z0-9]))`;
-  const lead = new RegExp(`^(?:${SEP}|[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]]|${TAG})+`);
-  const trail = new RegExp(`(?:\\s*[\\-–—:|,]\\s*${TAG}(?:\\s*${TAG})*|\\s*[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]])\\s*$`);
-  const stray = new RegExp(`(?:^|\\s)[(\\[]?(?:${GRADE})(?![a-z0-9])[)\\]]?`);
+  // The class name exactly, plus shorthand built from it
+  const variants = [
+    ...names.slice().sort((a, b) => b.length - a.length).map(escRe),
+    ...new Set(names.map(abbreviationRe).filter(Boolean)),
+  ];
+  // Your section from PlusPortals' class code: "… 0832/01" -> 11.01, 11-01, 11.1, 11/01
+  const sectionNo = (ppNames.join(' ').match(/\d{3,4}\s*\/\s*(\d{1,2})/) || [])[1];
+  const SECTION = sectionNo ? `${GRADE_LEVEL}\\s*[.\\-/]\\s*0*${Number(sectionNo)}(?![0-9])` : '(?!)';
+  const EXACT_SECTION = sectionNo ? `${GRADE_LEVEL}\\s*[.\\-/]\\s*${sectionNo.padStart(2, '0')}(?![0-9])` : '(?!)';
+
+  const CLASS = variants.length
+    ? `(?:ap\\s+)?(?:${variants.join('|')})(?:\\s*${GRADE_LEVEL}(?![0-9.\\-/]))?(?![a-z0-9])`
+    : '(?!)';
+  const GRADE_TAG = `(?:${GRADE})(?![a-z0-9])`;
+  const TAG = `(?:${CLASS}|${SECTION}|${GRADE_TAG})`;
+  const LABEL = '[^\\d:|()\\[\\]\\-–—]{1,30}?'; // any short label right before your section code
+
+  const leadLabel = new RegExp(`^\\s*[(\\[]?${LABEL}\\s*${SECTION}\\s*[)\\]]?`);             // "LLAB Proy 11.01 - …"
+  const lead = new RegExp(`^(?:${SEP}|[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]]|${TAG})+`);  // "CompSci 11th: …"
+  const trail = new RegExp(`(?:\\s*[\\-–—:|,]\\s*${TAG}(?:\\s*${TAG})*|\\s*[(\\[]\\s*${TAG}(?:\\s*${TAG})*\\s*[)\\]])\\s*$`); // "… - Chem"
+  const trailLabel = new RegExp(`\\s*[\\-–—:|,(\\[]\\s*${LABEL}\\s*${SECTION}\\s*[)\\]]?\\s*$`); // "… (Elab Proy 11.01)"
+  const stray = new RegExp(`(?:^|\\s)[(\\[]?(?:${GRADE_TAG}|${EXACT_SECTION})[)\\]]?`);       // "11th" / "11.01" anywhere
 
   let t = raw;
   const cut = re => {
@@ -128,8 +162,9 @@ function cleanTitle(it) {
     t = `${t.slice(0, m.index)} ${t.slice(m.index + m[0].length)}`;
     return true;
   };
+  cut(leadLabel);
   cut(lead);
-  for (let i = 0; i < 3 && cut(trail); i++);
+  for (let i = 0; i < 4 && (cut(trail) || cut(trailLabel)); i++);
   for (let i = 0; i < 3 && cut(stray); i++);
   t = t.replace(/\s+/g, ' ').replace(/^[\s\-–—:|·.,;/]+/, '').replace(/[\s\-–—:|,;/]+$/, '').trim();
   return t || raw;
