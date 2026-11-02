@@ -1,9 +1,10 @@
-// inklit-reminders.js: hourly job that sends InkLit reading and review reminders.
+// inklit-reminders.js: hourly job that sends InkLit reading and daily-lesson reminders.
 // Runs on GitHub Actions with a service account for the InkLit Firebase project.
 const admin = require('firebase-admin');
 
-const LAST_CALL_HOUR = 21; // 9 PM "last call" if the streak is still at risk
+const LAST_CALL_HOUR = 21; // 9 PM "last call"
 const QUIET_FROM = 23;     // never send at 11 PM or later
+const LESSON_WORDS = 7;    // words per InkLit lesson
 const TAG = 'inklit-reminder';
 
 const raw = process.env.INKLIT_SERVICE_ACCOUNT;
@@ -38,27 +39,52 @@ async function loadStatus(userRef) {
     userRef.collection('meta').doc('progress').get(),
     userRef.collection('vocab').where('nextDueDate', '<=', new Date().toISOString()).count().get(),
   ]);
-  return { readDays: (meta.exists && meta.get('readDays')) || {}, due: due.data().count || 0 };
+  const lessons = meta.exists ? meta.get('lessons') : null;
+  return {
+    readDays: (meta.exists && meta.get('readDays')) || {},
+    lessonAts: (Array.isArray(lessons) ? lessons : []).map(l => Number(l?.at) || 0).filter(Boolean),
+    due: due.data().count || 0,
+  };
 }
 
 // Emojis are fine here: these are push notifications
-function messageFor(kind, s, today) {
+function messageFor(kind, s, tz, today) {
   const { streak, readToday } = streakOf(s.readDays, today);
-  const words = s.due === 1 ? '1 word is' : `${s.due} words are`;
+  const lessonToday = s.lessonAts.some(at => dayKeyIn(tz, new Date(at)) === today);
+  const wordsDue = s.due === 1 ? '1 word is' : `${s.due} words are`;
+  const read = { tab: 'home', action: '' };
+  const learn = { tab: 'learn', action: 'learn' };
+
   if (kind === 'lastCall') {
-    if (readToday || !streak) return null;
-    return { title: `🔥 Last call for your ${streak}-day streak`, body: 'Read a few pages before bed to keep it alive.', tab: 'home', action: '' };
+    if (!readToday && streak) {
+      return {
+        title: `🔥 Last call for your ${streak}-day streak`,
+        body: lessonToday ? 'Read a few pages before bed to keep it alive.' : 'Read a few pages before bed. Your lesson is still waiting too.',
+        ...read,
+      };
+    }
+    if (readToday && !lessonToday) return { title: "🧠 Still time for today's lesson", body: 'A quick 2 minutes with Inky before bed.', ...learn };
+    return null;
   }
-  if (!readToday && streak) {
+
+  if (!readToday && !lessonToday) {
+    return streak
+      ? { title: `🔥 Keep your ${streak}-day streak going`, body: `Read a few pages, then do today's 2-minute lesson.${s.due ? ` ${wordsDue} ready for review.` : ''}`, ...read }
+      : { title: '📚 Time to read and learn', body: `A few pages starts a new streak, and ${s.due ? `${wordsDue} ready for review` : `${LESSON_WORDS} fresh words are waiting`}.`, ...read };
+  }
+  if (!readToday) {
+    return streak
+      ? { title: `🔥 Keep your ${streak}-day streak going`, body: "Nice work on today's lesson. Read a few pages to keep your streak.", ...read }
+      : { title: '📚 Time to read', body: "You did today's lesson. A few pages starts a new streak.", ...read };
+  }
+  if (!lessonToday) {
     return {
-      title: `🔥 Keep your ${streak}-day streak going`,
-      body: s.due ? `Read a little today. ${words} also ready for review.` : 'Read a few pages today to keep it alive.',
-      tab: 'home', action: '',
+      title: "🧠 Time for today's lesson",
+      body: s.due ? `${wordsDue} ready for review. It takes about 2 minutes.` : `${LESSON_WORDS} fresh words with Inky, about 2 minutes.`,
+      ...learn,
     };
   }
-  if (!readToday) return { title: '📚 Time to read', body: 'A few pages today starts a new streak.', tab: 'home', action: '' };
-  if (s.due) return { title: `🧠 ${words} ready for review`, body: 'A 2-minute lesson with Inky keeps them fresh.', tab: 'learn', action: 'learn' };
-  return null; // read today and nothing due: no nudge needed
+  return null; // read and did a lesson today: no nudge needed
 }
 
 async function main() {
@@ -92,7 +118,7 @@ async function main() {
       if (!kind) continue;
 
       status = status || await loadStatus(userRef);
-      const msg = messageFor(kind, status, today);
+      const msg = messageFor(kind, status, tz, today);
       if (msg) {
         try {
           await app.messaging().send({
