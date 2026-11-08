@@ -2,7 +2,7 @@
 // Skips the reminder if today is already logged (a split or a rest day).
 const admin = require('firebase-admin');
 
-const LIFEOS_URL = 'https://PASTE-YOUR-LIFEOS-ADDRESS/'; // where you open LifeOS, ending in /
+const LIFEOS_URL = 'https://veneno11.github.io/leo-slifeos/'; // where you open LifeOS, ending in /
 const TZ = 'America/Chicago';
 const BASE = 'artifacts/leo-lifeos-local/users/leo-main-sync-account/appData';
 const SPLITS = { chest: 'Chest & shoulders', back: 'Back & biceps', arms: 'Arms', legs: 'Legs & core' };
