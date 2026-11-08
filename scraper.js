@@ -432,7 +432,7 @@ function isoDay(v) {
 }
 
 async function onlyNewForLifeOS(items) {
-  const TZ = 'America/Chicago';
+  const TZ = 'America/Guatemala';
   const dayISO = ms => new Date(ms).toLocaleDateString('en-CA', { timeZone: TZ }); // YYYY-MM-DD
   const today = dayISO(Date.now());
   const forgetBefore = dayISO(Date.now() - 10 * 864e5);
