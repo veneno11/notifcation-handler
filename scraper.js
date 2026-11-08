@@ -409,8 +409,60 @@ async function sendNotifications(userRef, fresh) {
     });
   }
 
-  await Promise.all([...expired].map(ref => ref.delete()));
+ await Promise.all([...expired].map(ref => ref.delete()));
   console.log(`  sent ${sent} notification(s) to ${tokens.length} device(s)${expired.size ? `, removed ${expired.size} expired` : ''}`);
+}
+
+// ---------- Leo's LifeOS: send each assignment once ----------
+// Remembers every assignment already sent to LifeOS (in LifeOS's Firestore), so
+// each one is added and notified once, even after you mark it done or delete it.
+// Overdue ones are skipped. An entry is forgotten 10 days after it was first
+// seen, once it's past due (overdue ones are skipped, so it can't come back).
+
+// PlusPortals due date -> YYYY-MM-DD (same day logic as dayText above)
+function isoDay(v) {
+  const s = String(v ?? '');
+  const ms = s.match(/\/Date\((-?\d+)/);
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (ms) return new Date(Number(ms[1])).toISOString().slice(0, 10);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+  return '';
+}
+
+async function onlyNewForLifeOS(items) {
+  const TZ = 'America/Chicago';
+  const dayISO = ms => new Date(ms).toLocaleDateString('en-CA', { timeZone: TZ }); // YYYY-MM-DD
+  const today = dayISO(Date.now());
+  const forgetBefore = dayISO(Date.now() - 10 * 864e5);
+
+  const lifeos = admin.initializeApp(
+    { credential: admin.credential.cert(JSON.parse(process.env.LIFEOS_SERVICE_ACCOUNT)) }, 'lifeos-log'
+  );
+  const ref = lifeos.firestore().doc('artifacts/leo-lifeos-local/users/leo-main-sync-account/appData/plusportalsLog');
+
+  const snap = await ref.get();
+  const firstRun = !snap.exists;
+  const log = (snap.exists && snap.data().seen) || {};
+  for (const [key, e] of Object.entries(log)) {
+    if (e.seen < forgetBefore && e.due < today) delete log[key];
+  }
+
+  const fresh = [];
+  for (const it of items) {
+    const key = itemKey('u', [it.AssignmentID, it.LessonActivityID, it.DiscussionTopicID, it.SectionID, it.Title, it.DueDate]);
+    const due = isoDay(it.DueDate);
+    if (log[key] || (due && due < today)) continue; // already sent, or overdue
+    log[key] = { seen: today, due: due || '9999-12-31' };
+    if (!firstRun) fresh.push(it);
+  }
+
+  await ref.set({ seen: log, updatedAt: new Date().toISOString() });
+  console.log(firstRun
+    ? `  first run: remembered ${Object.keys(log).length} assignments, nothing re-sent`
+    : `  ${fresh.length} new for LifeOS`);
+  return fresh;
 }
 
 // ---------- Main ----------
@@ -450,7 +502,9 @@ async function runScraper() {
     }
 console.log("Step 10: Leo's LifeOS");
     try {
-      await syncLifeOS(upcoming.items || []);
+const newItems = await onlyNewForLifeOS(upcoming.items || []);
+      if (newItems.length) await syncLifeOS(newItems);
+      else console.log('  nothing new for LifeOS');
     } catch (e) {
       console.log(`  failed — ${e.message}`);
     }
