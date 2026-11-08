@@ -1,7 +1,8 @@
 name: Training Reminder
 on:
   schedule:
-    - cron: '0 2 * * *'   # 8 PM Chicago in winter, 9 PM in summer
+    - cron: '0 20 * * *'   # 8 PM Guatemala
+  timezone: "America/Guatemala'
   workflow_dispatch:
 
 jobs:
