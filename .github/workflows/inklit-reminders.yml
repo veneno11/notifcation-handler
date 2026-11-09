@@ -2,8 +2,13 @@ name: InkLit Reminders
 
 on:
   schedule:
-    - cron: '23 * * * *'   # every hour, at minute 23
-  workflow_dispatch:        # keeps the manual "Run workflow" button
+    - cron: '23 * * * *'   # every hour at minute 23; GitHub often starts it 5-30 min late
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Send a preview now to the device that opened InkLit last (saves nothing)'
+        type: boolean
+        default: false
 
 concurrency:
   group: inklit-reminders
@@ -22,3 +27,4 @@ jobs:
       - run: node inklit-reminders.js
         env:
           INKLIT_SERVICE_ACCOUNT: ${{ secrets.INKLIT_SERVICE_ACCOUNT }}
+          INKLIT_TEST: ${{ inputs.test }}
