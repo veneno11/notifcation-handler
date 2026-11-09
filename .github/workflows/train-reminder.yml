@@ -1,8 +1,8 @@
 name: Training Reminder
 on:
   schedule:
-    - cron: '0 20 * * *'   # 8 PM Guatemala
-  timezone: "America/Guatemala'
+    - cron: '0 20 * * *'
+      timezone: 'America/Guatemala'   # 8 PM Guatemala, all year
   workflow_dispatch:
 
 jobs:
